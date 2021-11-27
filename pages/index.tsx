@@ -43,9 +43,9 @@ const cld = new Cloudinary({
 //   }
 // }
 
-const ImageList = (images) => {
+const ImageList = (images: any) => {
   
-  const imageList = images.map((i, index) => {
+  const imageList = images.map((i: string, index: number) => {
     return (
       <ImageWrapper key={index}>
         <img src={i} width="100%" />
@@ -61,7 +61,7 @@ const ImageList = (images) => {
 
 function Home() {
 
-  const fetcher = (url) => fetch(url).then((res) => res.json());
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data, error } = useSWR('/api/readphotos', fetcher);
   console.log(data)
 
@@ -71,9 +71,9 @@ function Home() {
 
 
   // EXIF stuff .. make this async
-  const tags = ExifReader.load(data[0]).then(r => {
-    const lala = 1;
-  })
+  // const tags = ExifReader.load(data[0]).then(r => {
+  //   const lala = 1;
+  // })
   // const imageDate = tags['DateTimeOriginal'].description;
   // const unprocessedTagValue = tags['DateTimeOriginal'].value;
 
@@ -86,7 +86,7 @@ function Home() {
   
   //...
   return (
-    <div width="100vw">
+    // <div width="100vw">
     <Masonry
       breakpointCols={breakpointColumnsObj}
       className="my-masonry-grid"
@@ -94,7 +94,7 @@ function Home() {
     >
       {ImageList(data)}
     </Masonry>
-    </div>
+    // </div>
 
   );
   
