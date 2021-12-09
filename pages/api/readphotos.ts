@@ -1,21 +1,21 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-// import fs from 'fs'
-// import path from 'path'
-import aws from 'aws-sdk';
+import fs from 'fs'
+import path from 'path'
+// import aws from 'aws-sdk';
 
 export default function handler(
   req: NextApiRequest,
   res: NextApiResponse<any>
 ) {
-  // const dirRelativeToPublicFolder = 'images/photos/2021';
+  const dirRelativeToPublicFolder = 'images/photos/2021';
 
-  // const dir = path.resolve('./public', dirRelativeToPublicFolder);
+  const dir = path.resolve('./public', dirRelativeToPublicFolder);
 
-  // // const dir = path.resolve('./public/images/photos/2021');
+  // const dir = path.resolve('./public/images/photos/2021');
 
-  // const filenames = fs.readdirSync(dir);
+  const filenames = fs.readdirSync(dir);
 
-  // const images = filenames.map(name => path.join('/', dirRelativeToPublicFolder, name))
+  const images = filenames.map(name => path.join('/', dirRelativeToPublicFolder, name))
 
   // aws.config.update({
   //   accessKeyId: process.env.AWS_S3_ACCESS_KEY,
@@ -47,5 +47,5 @@ export default function handler(
   // });
 
   res.statusCode = 200
-  res.json(lala);
+  res.json(images);
 }
