@@ -58,8 +58,8 @@ export async function getStaticProps() {
   // });
 
   aws.config.update({
-    accessKeyId: process.env.AWS_S3_SECRET,
-    secretAccessKey: process.env.AWS_S3_ACCESS_KEY,
+    accessKeyId: process.env.AWS_S3_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_S3_SECRET,
     region: 'us-east-1',
     signatureVersion: 'v4',
   });
