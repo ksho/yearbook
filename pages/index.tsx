@@ -31,7 +31,7 @@ const cld = new Cloudinary({
 });
 import aws from 'aws-sdk';
 
-export async function getStaticProps() {
+export async function getServerSideProps() {
 // export const getServerSideProps: GetServerSideProps = async (context) => {
   // const res = await fetch('https://res.cloudinary.com/kshoyearbook/image/list/yearbook_2021.json')
   // const json = await res.json()
@@ -49,14 +49,6 @@ export async function getStaticProps() {
   //   props: { data }, // will be passed to the page component as props
   // }
 
-  
-  // const s3 = new AWS.S3({
-  //   credentials: {
-  //     accessKeyId: ,
-  //     secretAccessKey: 
-  //   }
-  // });
-
   aws.config.update({
     accessKeyId: process.env.AWS_S3_ACCESS_KEY,
     secretAccessKey: process.env.AWS_S3_SECRET,
@@ -72,7 +64,6 @@ export async function getStaticProps() {
   const params = {
     Bucket: 'ksho-share',
     Prefix: '2021',
-    // Key: 'test.jpg'
   };
 
   const res = await new Promise((resolve, reject) => {
@@ -85,8 +76,9 @@ export async function getStaticProps() {
       resolve(keys);
     });
   });
+  
 
-  return {props: { data: res } };
+  return { props: { data: res } };
 
 }
 
@@ -111,29 +103,13 @@ const ImageList = (images: any) => {
   return imageList;
 };
 
-
-
-// function getImages() {
-//   const dirRelativeToPublicFolder = 'images/photos/2021';
-
-//   const dir = path.resolve('./public', dirRelativeToPublicFolder);
-
-//   // const dir = path.resolve('./public/images/photos/2021');
-
-//   const filenames = fs.readdirSync(dir);
-
-//   const images = filenames.map(name => path.join('/', dirRelativeToPublicFolder, name))
-
-//   return images;
-// }
-
 function Home(data: any) {
 
   // Uncomment for local files
   // const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  // const { images, error } = useSWR('/api/readphotos', fetcher);
+  // const { images } = useSWR('/api/readphotos', fetcher);
   const images = data.data;
-  console.log(data)
+  console.log(images)
 
 
   // Uncomment for cloudinary
