@@ -4,12 +4,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "export": "next build && next export",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@cloudinary/react": "^1.0.0-beta.11",
     "@cloudinary/url-gen": "^1.2.0",
+    "aws-sdk": "^2.1045.0",
     "cloudinary-react": "^1.7.0",
     "exifreader": "^4.1.0",
     "next": "12.0.4",
