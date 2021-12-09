@@ -79,7 +79,7 @@ export async function getStaticProps() {
     s3.listObjectsV2(params, (err, data) => {
       if (err) reject(err);
       console.log(data);
-      const keys = data.Contents.map((c) => c.Key)
+      const keys = data.Contents?.map((c) => c.Key) || []
       keys.shift();
       // let imgData = 'data:image/jpeg;base64,' + data.Body.toString('base64');
       resolve(keys);
@@ -127,7 +127,7 @@ const ImageList = (images: any) => {
 //   return images;
 // }
 
-function Home(data) {
+function Home(data: any) {
 
   // Uncomment for local files
   // const fetcher = (url: string) => fetch(url).then((res) => res.json());
