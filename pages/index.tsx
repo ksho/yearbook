@@ -73,7 +73,7 @@ export async function getServerSideProps() {
   const res = await new Promise((resolve, reject) => {
     s3.listObjectsV2(params, (err, data) => {
       if (err) reject(err);
-      console.log(data);
+      // console.log(data);
       const keys = data.Contents?.map((c) => c.Key) || []
       keys.shift();
       // let imgData = 'data:image/jpeg;base64,' + data.Body.toString('base64');
@@ -107,9 +107,7 @@ const ImageList = (images: any) => {
             loading="lazy"
           />
         </a>
-      </ItemWrapper>
-      
-      
+      </ItemWrapper> 
     )
   });
   
@@ -141,16 +139,17 @@ function Home(data: any) {
   // const imageDate = tags['DateTimeOriginal'].description;
   // const unprocessedTagValue = tags['DateTimeOriginal'].value;
 
-  const breakpointColumnsObj = {
-    default: 3,
-    1100: 3,
-    700: 2,
-    500: 1
-  };
+  // const breakpointColumnsObj = {
+  //   default: 3,
+  //   1100: 3,
+  //   700: 2,
+  //   500: 1
+  // };
 
   const options = {
     settings: {
-      // overlayColor: "rgb(25, 136, 124)",
+      lightboxTransitionSpeed: 0.1,
+      lightboxTransitionTimingFunction: 'easeOut',
     },
     buttons: {
       showAutoplayButton: false,
@@ -172,14 +171,14 @@ function Home(data: any) {
   
   //...
   return (
-    <div>
-      <h1>2021</h1>
+    <div style={{margin: '10px'}}>
+      <h1 style={{color: 'white', margin: '10px'}}>2021</h1>
       <SRLWrapper options={options}>
         <GridOuterWrapper>
-        <GridWrapper>
-          {ImageList(images)}
-          <span></span>
-        </GridWrapper>
+          <GridWrapper>
+            {ImageList(images)}
+            <span></span>
+          </GridWrapper>
         </GridOuterWrapper>
       </SRLWrapper>
       
@@ -228,9 +227,9 @@ const GridWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
   width: 80vw;
-  &:last-child {
+  /* &:last-child {
     flex-grow: 10;
-  }
+  } */
 `;
 
 const ItemWrapper = styled.span`
@@ -246,22 +245,22 @@ const FlexImage = styled.img`
   vertical-align: bottom;
 `;
 
-const ImageListWrapper = styled.div`
-  display: grid;
-  grid-template-columns: 33% 33% 33%;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  align-items: center;
-  grid-area: content;
-`;
+// const ImageListWrapper = styled.div`
+//   display: grid;
+//   grid-template-columns: 33% 33% 33%;
+//   gap: 0.25rem;
+//   padding: 0.25rem;
+//   align-items: center;
+//   grid-area: content;
+// `;
 
-const ImageWrapper = styled.div`
-    /* width: 250px; */
-    /* height: 100%; */
-    background: #dbdedf;
-    margin: 12px;
-    width: 100%;
-    /* height: 600px; */
-    /* height: 100%; */
-    position: relative;
-`;
+// const ImageWrapper = styled.div`
+//     /* width: 250px; */
+//     /* height: 100%; */
+//     background: #dbdedf;
+//     margin: 12px;
+//     width: 100%;
+//     /* height: 600px; */
+//     /* height: 100%; */
+//     position: relative;
+// `;
