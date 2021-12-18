@@ -6,7 +6,7 @@ import styled from 'styled-components';
 
 import { LazyLoadImage, trackWindowScroll } from 'react-lazy-load-image-component';
 
-import { SRLWrapper } from "simple-react-lightbox";
+import { SRLWrapper } from 'simple-react-lightbox';
 
 // import fs from 'fs'
 // import path from 'path'
@@ -85,23 +85,29 @@ export async function getServerSideProps() {
   return { props: { data: res } };
 
 }
-import LazyLoad from "react-lazyload";
+// import LazyLoad from "react-lazyload";
 const ImageList = (images: any) => {
   
   
   const imageList = images.map((i: string, index: number) => {
     return (
-      <ImageWrapper key={index}>
+      <ItemWrapper key={index}>
         {/* <LazyLoad> */}
-        <a href={`https://yearbook-assets.s3.amazonaws.com/${i.replace('200px', '3000px')}`}>
+        {/* <a href={`https://yearbook-assets.s3.amazonaws.com/${i.replace('200px', '3000px')}`}>
           <LazyLoadImage
             src={`https://yearbook-assets.s3.amazonaws.com/${i.replace('200px', '1000px')}`}
             width="100%"
             effect="blur"
             placeholderSrc={`https://yearbook-assets.s3.amazonaws.com/${i}`}/>
-          </a>
+          </a> */}
         {/* </LazyLoad> */}
-      </ImageWrapper>
+        <a href={`https://yearbook-assets.s3.amazonaws.com/${i.replace('200px', '3000px')}`}>
+          <FlexImage
+            src={`https://yearbook-assets.s3.amazonaws.com/${i.replace('200px', '1000px')}`}
+            loading="lazy"
+          />
+        </a>
+      </ItemWrapper>
       
       
     )
@@ -141,19 +147,40 @@ function Home(data: any) {
     700: 2,
     500: 1
   };
+
+  const options = {
+    settings: {
+      // overlayColor: "rgb(25, 136, 124)",
+    },
+    buttons: {
+      showAutoplayButton: false,
+      showCloseButton: true,
+      showDownloadButton: false,
+      showFullscreenButton: false,
+      showNextButton: true,
+      showPrevButton: true,
+      showThumbnailsButton: false,
+    },
+    caption: {
+      // captionColor: "#a6cfa5",
+      // captionTextTransform: "uppercase",
+    },
+    thumbnails: {
+      showThumbnails: false,
+    }
+  };
   
   //...
   return (
-    <div width="100vw">
+    <div>
       <h1>2021</h1>
-      <SRLWrapper>
-      <Masonry
-        breakpointCols={breakpointColumnsObj}
-        className="my-masonry-grid"
-        columnClassName="my-masonry-grid_column"
-      >
-        {ImageList(images)}
-      </Masonry>
+      <SRLWrapper options={options}>
+        <GridOuterWrapper>
+        <GridWrapper>
+          {ImageList(images)}
+          <span></span>
+        </GridWrapper>
+        </GridOuterWrapper>
       </SRLWrapper>
       
     </div>
@@ -190,6 +217,34 @@ function Home(data: any) {
 }
 
 export default Home
+
+
+const GridOuterWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+`;
+
+const GridWrapper = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  width: 80vw;
+  &:last-child {
+    flex-grow: 10;
+  }
+`;
+
+const ItemWrapper = styled.span`
+  height: 35vh;
+  flex-grow: 1;
+  margin: 8px;
+`;
+
+const FlexImage = styled.img`
+  max-height: 100%;
+  min-width: 100%;
+  object-fit: cover;
+  vertical-align: bottom;
+`;
 
 const ImageListWrapper = styled.div`
   display: grid;
