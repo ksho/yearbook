@@ -4,6 +4,10 @@ import Image from 'next/image'
 import '../styles/Home.module.css'
 import styled from 'styled-components';
 
+import { LazyLoadImage, trackWindowScroll } from 'react-lazy-load-image-component';
+
+import { SRLWrapper } from "simple-react-lightbox";
+
 // import fs from 'fs'
 // import path from 'path'
 
@@ -62,8 +66,8 @@ export async function getServerSideProps() {
   // let filename = query.id;
 
   const params = {
-    Bucket: 'ksho-share',
-    Prefix: '2021',
+    Bucket: 'yearbook-assets',
+    Prefix: '2021/200px',
   };
 
   const res = await new Promise((resolve, reject) => {
@@ -81,18 +85,22 @@ export async function getServerSideProps() {
   return { props: { data: res } };
 
 }
-
+import LazyLoad from "react-lazyload";
 const ImageList = (images: any) => {
   
   
   const imageList = images.map((i: string, index: number) => {
     return (
       <ImageWrapper key={index}>
-        <img src={`https://ksho-share.s3.amazonaws.com/${i}`} width="100%" />
-        {/* <AdvancedImage
-          cldImg={cld.image(i.public_id) }
-          plugins={[lazyload(), responsive(100), placeholder()]}
-        /> */}
+        {/* <LazyLoad> */}
+        <a href={`https://yearbook-assets.s3.amazonaws.com/${i.replace('200px', '3000px')}`}>
+          <LazyLoadImage
+            src={`https://yearbook-assets.s3.amazonaws.com/${i.replace('200px', '1000px')}`}
+            width="100%"
+            effect="blur"
+            placeholderSrc={`https://yearbook-assets.s3.amazonaws.com/${i}`}/>
+          </a>
+        {/* </LazyLoad> */}
       </ImageWrapper>
       
       
@@ -136,15 +144,19 @@ function Home(data: any) {
   
   //...
   return (
-    // <div width="100vw">
-    <Masonry
-      breakpointCols={breakpointColumnsObj}
-      className="my-masonry-grid"
-      columnClassName="my-masonry-grid_column"
-    >
-      {ImageList(images)}
-    </Masonry>
-    // </div>
+    <div width="100vw">
+      <h1>2021</h1>
+      <SRLWrapper>
+      <Masonry
+        breakpointCols={breakpointColumnsObj}
+        className="my-masonry-grid"
+        columnClassName="my-masonry-grid_column"
+      >
+        {ImageList(images)}
+      </Masonry>
+      </SRLWrapper>
+      
+    </div>
 
   );
   
