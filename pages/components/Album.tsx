@@ -4,7 +4,7 @@ import styled from 'styled-components';
 // import LazyImage from './LazyImage';
 
 type TParams =  { id: string };
-const BATCH_SIZE = 15;
+const BATCH_SIZE = 20;
 
 interface IOwnProps {
   items: string[],
@@ -31,9 +31,9 @@ export default class Album extends Component<IOwnProps, IOwnState> {
   componentDidMount() {
     const { items } = this.props;
     this.setState({
-        items,
-        renderItems: items.slice(0, BATCH_SIZE),
-        offset: BATCH_SIZE,
+      items,
+      renderItems: items.slice(0, BATCH_SIZE),
+      offset: BATCH_SIZE,
     });
     document.addEventListener('scroll', this.trackScrolling);
 
@@ -44,7 +44,7 @@ export default class Album extends Component<IOwnProps, IOwnState> {
   componentWillUnmount() {
     const { intervalId } = this.state;
 
-    // use intervalId from the state to clear the interval
+    // Use intervalId from the state to clear the interval
     if (intervalId) {
       clearInterval(intervalId);
     }
@@ -143,7 +143,6 @@ const FlexImage = styled.img`
     height: auto;
   }
 `;
-
 
 // const ImageGrid = styled.div`
 //     display: grid;
