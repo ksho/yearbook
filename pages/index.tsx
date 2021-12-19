@@ -88,7 +88,6 @@ function Home(data: any) {
     }
   };
   
-  //...
   return (
     <div id='page-main-grid' style={{margin: '10px'}}>
       <h1 style={{color: 'white', margin: '10px'}}>2021</h1>

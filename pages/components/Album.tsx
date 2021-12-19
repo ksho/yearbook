@@ -1,14 +1,14 @@
 import React, { Component } from 'react';
 
 import styled from 'styled-components';
+// import LazyImage from './LazyImage';
 
 type TParams =  { id: string };
-const BATCH_SIZE = 40;
+const BATCH_SIZE = 20;
 
 interface IOwnProps {
   items: string[],
 }
-
 
 interface IOwnState {
   items: any,
@@ -69,17 +69,6 @@ export default class Album extends Component<IOwnProps, IOwnState> {
     }
   };
 
-  // childElements(album: string[]) {
-  //     return album.map(e => {
-  //         return (
-  //             <GridImage style={{backgroundImage: `url(${e})`}} key={e}>
-  //             {/* <img src={e} alt={e}/> */}
-  //             </GridImage>
-  //             // <LazyImage src={e} key={e}/>
-  //         );
-  //     });
-  // }
-
   childElements = (imagePaths: string[]) => {
       const imageList = imagePaths.map((p: string, index: number) => {
         return (
@@ -89,6 +78,7 @@ export default class Album extends Component<IOwnProps, IOwnState> {
                 src={`https://yearbook-assets.s3.amazonaws.com/${p.replace('200px', '1000px')}`}
                 loading="lazy"
               />
+              {/* <LazyImage src={`https://yearbook-assets.s3.amazonaws.com/${p.replace('200px', '1000px')}`} placeholder={`https://yearbook-assets.s3.amazonaws.com/${p}`} key={p}/> */}
             </a>
           </ItemWrapper> 
         )
@@ -104,6 +94,7 @@ export default class Album extends Component<IOwnProps, IOwnState> {
       <GridOuterWrapper>
         <GridWrapper>
           {this.childElements(renderItems)}
+          <span></span>
         </GridWrapper>
       </GridOuterWrapper>
     )
@@ -120,12 +111,12 @@ const GridWrapper = styled.div`
   flex-wrap: wrap;
   width: 80vw;
   /* &:last-child {
-    flex-grow: 10;
+    flex-grow: 1;
   } */
 `;
 
 const ItemWrapper = styled.span`
-  height: 35vh;
+  height: 50vh;
   flex-grow: 1;
   margin: 8px;
 `;
@@ -136,3 +127,20 @@ const FlexImage = styled.img`
   object-fit: cover;
   vertical-align: bottom;
 `;
+
+
+// const ImageGrid = styled.div`
+//     display: grid;
+//     grid-gap: 5px;
+//     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+//     /* grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); */
+   
+//     /* grid-template-columns: repeat(4, 1fr); */
+// `;
+
+// const GridImage = styled.div`
+//     background-position: center center;
+//     background-repeat: no-repeat;
+//     background-size: cover; 
+//     height: 200px;
+// `;
