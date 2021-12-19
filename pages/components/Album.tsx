@@ -37,7 +37,7 @@ export default class Album extends Component<IOwnProps, IOwnState> {
     });
     document.addEventListener('scroll', this.trackScrolling);
 
-    const intervalId = setInterval(this.trackScrolling, 1000);
+    const intervalId = setInterval(this.trackScrolling, 500);
     this.setState({ intervalId: intervalId });
   }
 
