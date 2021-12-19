@@ -89,14 +89,35 @@ function Home(data: any) {
   };
   
   return (
-    <div id='page-main-grid' style={{margin: '6px'}}>
-      <h1 style={{color: 'white', margin: '6px'}}>2021</h1>
-      <SRLWrapper options={options}>
-        <Album items={images}/>
-      </SRLWrapper>
-    </div>
-
+    <MainContentWrapper id='page-main-grid'>
+      <MainContent>
+        <h1 style={{color: 'white', margin: '6px'}}>2021</h1>
+        <SRLWrapper options={options}>
+          <Album items={images}/>
+        </SRLWrapper>
+      </MainContent>
+    </MainContentWrapper>
   );
 }
+
+const MainContentWrapper = styled.div`
+  display: flex;
+  /* flex-direction: column; */
+  justify-content: center;
+  margin: 6px;
+  width: 100vw;
+
+`;
+
+const MainContent = styled.div`
+  width: 80%;
+  margin: 6px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    width: 100vw;
+  }
+
+`;
 
 export default Home

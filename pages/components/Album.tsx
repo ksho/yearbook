@@ -95,27 +95,20 @@ export default class Album extends Component<IOwnProps, IOwnState> {
     const { renderItems } = this.state;
     
     return (
-      <GridOuterWrapper>
-        <GridWrapper>
-          {this.childElements(renderItems)}
-          <span></span>
-        </GridWrapper>
-      </GridOuterWrapper>
+      <GridWrapper>
+        {this.childElements(renderItems)}
+        <span></span>
+      </GridWrapper>
     )
   }
 }
 
-const GridOuterWrapper = styled.div`
-  display: flex;
-  justify-content: center;
-  /* width: 100%; */
 
-`;
 
 const GridWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
-  width: 80vw;
+  width: 100%;
   flex-direction: row;
 
   @media (max-width: 768px) {
@@ -144,7 +137,7 @@ const FlexImage = styled.img`
   min-width: 100%;
   object-fit: cover;
   vertical-align: bottom;
-  
+
   @media (max-width: 768px) {
     width: 100%;
     height: auto;
