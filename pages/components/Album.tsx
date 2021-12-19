@@ -4,7 +4,7 @@ import styled from 'styled-components';
 // import LazyImage from './LazyImage';
 
 type TParams =  { id: string };
-const BATCH_SIZE = 20;
+const BATCH_SIZE = 15;
 
 interface IOwnProps {
   items: string[],
@@ -43,7 +43,7 @@ export default class Album extends Component<IOwnProps, IOwnState> {
 
   componentWillUnmount() {
     const { intervalId } = this.state;
-    
+
     // use intervalId from the state to clear the interval
     if (intervalId) {
       clearInterval(intervalId);
@@ -108,12 +108,20 @@ export default class Album extends Component<IOwnProps, IOwnState> {
 const GridOuterWrapper = styled.div`
   display: flex;
   justify-content: center;
+  /* width: 100%; */
+
 `;
 
 const GridWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
   width: 80vw;
+  flex-direction: row;
+
+  @media (max-width: 768px) {
+      flex-direction: column;
+      width: 100vw;
+  }
   /* &:last-child {
     flex-grow: 1;
   } */
@@ -122,7 +130,13 @@ const GridWrapper = styled.div`
 const ItemWrapper = styled.span`
   height: 50vh;
   flex-grow: 1;
-  margin: 8px;
+  margin: 6px;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    height: auto;
+    margin: 2px;
+  }
 `;
 
 const FlexImage = styled.img`
@@ -130,6 +144,11 @@ const FlexImage = styled.img`
   min-width: 100%;
   object-fit: cover;
   vertical-align: bottom;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    height: auto;
+  }
 `;
 
 

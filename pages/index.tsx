@@ -89,8 +89,8 @@ function Home(data: any) {
   };
   
   return (
-    <div id='page-main-grid' style={{margin: '10px'}}>
-      <h1 style={{color: 'white', margin: '10px'}}>2021</h1>
+    <div id='page-main-grid' style={{margin: '6px'}}>
+      <h1 style={{color: 'white', margin: '6px'}}>2021</h1>
       <SRLWrapper options={options}>
         <Album items={images}/>
       </SRLWrapper>
