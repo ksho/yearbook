@@ -51,7 +51,8 @@ export default class Album extends Component<IOwnProps, IOwnState> {
   }
 
   isBottom(el: HTMLElement) {
-    return el.getBoundingClientRect().bottom <= window.innerHeight;
+    // 1000px from the bottom
+    return el.getBoundingClientRect().bottom <= window.innerHeight + 1000;
   }
     
   trackScrolling = () => {
