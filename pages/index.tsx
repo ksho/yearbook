@@ -34,6 +34,7 @@ const cld = new Cloudinary({
   }
 });
 import aws from 'aws-sdk';
+import Album from './components/Album';
 
 export async function getServerSideProps() {
 // export const getServerSideProps: GetServerSideProps = async (context) => {
@@ -61,9 +62,6 @@ export async function getServerSideProps() {
   });
 
   const s3 = new aws.S3();
-
-  // The id from the route (e.g. /img/abc123987)
-  // let filename = query.id;
 
   const params = {
     Bucket: 'yearbook-assets',
@@ -121,7 +119,7 @@ function Home(data: any) {
   // const fetcher = (url: string) => fetch(url).then((res) => res.json());
   // const { images } = useSWR('/api/readphotos', fetcher);
   const images = data.data;
-  console.log(images)
+  // console.log(images)
 
 
   // Uncomment for cloudinary
@@ -129,7 +127,7 @@ function Home(data: any) {
 
   // if (error) return <div>failed to load</div>
   if (!images) return <div>loading...</div>
-  console.log("images", images)
+  // console.log("images", images)
 
 
   // EXIF stuff .. make this async
@@ -171,15 +169,16 @@ function Home(data: any) {
   
   //...
   return (
-    <div style={{margin: '10px'}}>
+    <div style={{margin: '10px'}} id='page-main-grid'>
       <h1 style={{color: 'white', margin: '10px'}}>2021</h1>
       <SRLWrapper options={options}>
-        <GridOuterWrapper>
-          <GridWrapper>
-            {ImageList(images)}
+        {/* <GridOuterWrapper>
+          <GridWrapper> */}
+            {/* {ImageList(images)} */}
+            <Album items={images}/>
             <span></span>
-          </GridWrapper>
-        </GridOuterWrapper>
+          {/* </GridWrapper>
+        </GridOuterWrapper> */}
       </SRLWrapper>
       
     </div>
