@@ -42,8 +42,12 @@ export default class Album extends Component<IOwnProps, IOwnState> {
   }
 
   componentWillUnmount() {
+    const { intervalId } = this.state;
+    
     // use intervalId from the state to clear the interval
-    clearInterval(this.state.intervalId);
+    if (intervalId) {
+      clearInterval(intervalId);
+    }
   }
 
   isBottom(el: HTMLElement) {
