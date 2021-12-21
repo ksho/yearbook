@@ -23,7 +23,7 @@ export const darkTheme = {
 
 export const GlobalStyles = createGlobalStyle<{theme: ThemeType}>`
   body {
-    background: ${({ theme }) => theme.body};
+    background-color: ${({ theme }) => theme.body};
     color: ${({ theme }) => theme.text};
     transition: all 0.50s linear;
   }

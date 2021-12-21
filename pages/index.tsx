@@ -101,6 +101,7 @@ function Home(data: any) {
   return (
     <ThemeProvider theme={activeTheme}>
       <GlobalStyles />
+      <TopBar></TopBar>
       <MainContentWrapper id='page-main-grid'>
         <MainContent>
           <Header>
@@ -116,6 +117,12 @@ function Home(data: any) {
   );
 }
 
+const TopBar = styled.div`
+  background-color: #3f06dd;
+  height: 6px;
+  width: 104vw;
+`
+
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
@@ -126,6 +133,7 @@ const LightSwitch = styled.div`
   flex-direction: column;
   justify-content: center;
   font-size: 30px;
+  margin: 6px;
 `;
 
 const MainContentWrapper = styled.div`
