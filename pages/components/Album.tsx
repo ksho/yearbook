@@ -50,6 +50,10 @@ export default class Album extends Component<IOwnProps, IOwnState> {
     }
   }
 
+  getImageUrlBySize(path: string, size: string) {
+    return `https://yearbook-assets.s3.amazonaws.com/${path.replace('200px', size)}`;
+  }
+
   isBottom(el: HTMLElement) {
     // 1000px from the bottom
     return el.getBoundingClientRect().bottom <= window.innerHeight + 1000;
@@ -78,9 +82,9 @@ export default class Album extends Component<IOwnProps, IOwnState> {
       const imageList = imagePaths.map((p: string, index: number) => {
         return (
           <ItemWrapper key={index}>
-            <a href={`https://yearbook-assets.s3.amazonaws.com/${p.replace('200px', '3000px')}`}>
+            <a href={this.getImageUrlBySize(p, '3000px')}>
               <FlexImage
-                src={`https://yearbook-assets.s3.amazonaws.com/${p.replace('200px', '1000px')}`}
+                src={this.getImageUrlBySize(p, '1000px')}
                 loading="lazy"
               />
               {/* <LazyImage src={`https://yearbook-assets.s3.amazonaws.com/${p.replace('200px', '1000px')}`} placeholder={`https://yearbook-assets.s3.amazonaws.com/${p}`} key={p}/> */}
