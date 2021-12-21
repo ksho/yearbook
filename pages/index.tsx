@@ -1,15 +1,41 @@
-import type { GetServerSideProps, NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
 import '../styles/Home.module.css'
 import styled from 'styled-components';
 
 import { SRLWrapper } from 'simple-react-lightbox';
 import ExifReader from 'exifreader';
-import useSWR from 'swr'
 
 import aws from 'aws-sdk';
 import Album from './components/Album';
+import { useState } from 'react';
+
+import { ThemeProvider } from "styled-components";
+import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
+
+// TODO: move to config file
+const lightboxOptions = {
+  settings: {
+    lightboxTransitionSpeed: 0.1,
+    lightboxTransitionTimingFunction: 'easeOut',
+  },
+  buttons: {
+    showAutoplayButton: false,
+    showCloseButton: true,
+    showDownloadButton: false,
+    showFullscreenButton: false,
+    showNextButton: true,
+    showPrevButton: true,
+    showThumbnailsButton: false,
+  },
+  caption: {
+    captionColor: "#a6cfa5",
+    captionTextTransform: "uppercase",
+    showCaption: true,
+  },
+  thumbnails: {
+    showThumbnails: false,
+  }
+};
+
 
 export async function getServerSideProps() {
   aws.config.update({
@@ -49,6 +75,11 @@ function Home(data: any) {
   const images = data.data;
   // console.log(images)
 
+  const [theme, setTheme] = useState(THEMES.DARK.name);
+
+  const toggleTheme = () => {
+    theme == THEMES.LIGHT.name ? setTheme(THEMES.DARK.name) : setTheme(THEMES.LIGHT.name);
+  }
 
   // Uncomment for cloudinary
   // const images = data.data
@@ -65,40 +96,37 @@ function Home(data: any) {
   // const imageDate = tags['DateTimeOriginal'].description;
   // const unprocessedTagValue = tags['DateTimeOriginal'].value;
 
-  const options = {
-    settings: {
-      lightboxTransitionSpeed: 0.1,
-      lightboxTransitionTimingFunction: 'easeOut',
-    },
-    buttons: {
-      showAutoplayButton: false,
-      showCloseButton: true,
-      showDownloadButton: false,
-      showFullscreenButton: false,
-      showNextButton: true,
-      showPrevButton: true,
-      showThumbnailsButton: false,
-    },
-    caption: {
-      // captionColor: "#a6cfa5",
-      // captionTextTransform: "uppercase",
-    },
-    thumbnails: {
-      showThumbnails: false,
-    }
-  };
-  
+  const activeTheme = theme == THEMES.LIGHT.name ? lightTheme : darkTheme
+
   return (
-    <MainContentWrapper id='page-main-grid'>
-      <MainContent>
-        <h1 style={{color: 'white', margin: '6px'}}>2021</h1>
-        <SRLWrapper options={options}>
-          <Album items={images}/>
-        </SRLWrapper>
-      </MainContent>
-    </MainContentWrapper>
+    <ThemeProvider theme={activeTheme}>
+      <GlobalStyles />
+      <MainContentWrapper id='page-main-grid'>
+        <MainContent>
+          <Header>
+            <h1 style={{ margin: '6px'}}>2021</h1>
+            <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
+          </Header>
+          <SRLWrapper options={lightboxOptions}>
+            <Album items={images}/>
+          </SRLWrapper>
+        </MainContent>
+      </MainContentWrapper>
+    </ThemeProvider>
   );
 }
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const LightSwitch = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 30px;
+`;
 
 const MainContentWrapper = styled.div`
   display: flex;
