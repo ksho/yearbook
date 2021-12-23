@@ -134,6 +134,7 @@ const LightSwitch = styled.div`
   justify-content: center;
   font-size: 30px;
   margin: 6px;
+  cursor: pointer;
 `;
 
 const MainContentWrapper = styled.div`
