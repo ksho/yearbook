@@ -63,7 +63,7 @@ export default class Album extends Component<IOwnProps, IOwnState> {
     const { items, offset } = this.state;
 
     const wrappedElement = document.getElementById('page-main-grid');
-    if (wrappedElement && this.isBottom(wrappedElement) && (items.length > offset + BATCH_SIZE + BATCH_SIZE)) {
+    if (wrappedElement && this.isBottom(wrappedElement) && (items.length > offset)) {
       console.log('header bottom reached');
 
       // Rudimentary lazy loading.
