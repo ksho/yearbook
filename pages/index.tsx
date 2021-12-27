@@ -69,11 +69,7 @@ export async function getServerSideProps() {
 
 function Home(data: any) {
 
-  // Uncomment for local files
-  // const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  // const { images } = useSWR('/api/readphotos', fetcher);
   const images = data.data;
-  // console.log(images)
 
   const [theme, setTheme] = useState(THEMES.DARK.name);
 
@@ -81,13 +77,8 @@ function Home(data: any) {
     theme == THEMES.LIGHT.name ? setTheme(THEMES.DARK.name) : setTheme(THEMES.LIGHT.name);
   }
 
-  // Uncomment for cloudinary
-  // const images = data.data
-
   // if (error) return <div>failed to load</div>
   if (!images) return <div>loading...</div>
-  // console.log("images", images)
-
 
   // EXIF stuff .. make this async
   // const tags = ExifReader.load(data[0]).then(r => {
