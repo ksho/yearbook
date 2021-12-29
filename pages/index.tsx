@@ -56,12 +56,11 @@ export async function getServerSideProps() {
     s3.listObjectsV2(params, (err, data) => {
       if (err) reject(err);
       
-      const keys = data.Contents?.map((c) => c.Key) || []
-      keys.shift();
+      // Only include keys ending in .jpg -- filters out directories and any weird files like .DS_Store
+      const keys = data.Contents?.map((c) => c.Key).filter(k => k?.includes('.jpg')) || []
       resolve(keys);
     });
   });
-  
 
   return { props: { data: res } };
 
