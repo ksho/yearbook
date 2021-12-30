@@ -137,7 +137,7 @@ const MainContentWrapper = styled.div`
 `;
 
 const MainContent = styled.div`
-  width: 80%;
+  width: 85%;
   margin: 6px;
 
   @media (max-width: 768px) {
