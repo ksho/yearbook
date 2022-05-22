@@ -5,70 +5,45 @@ import { SRLWrapper } from 'simple-react-lightbox';
 import ExifReader from 'exifreader';
 
 import aws from 'aws-sdk';
-import Album from './components/Album';
 import { useState } from 'react';
 
 import { ThemeProvider } from "styled-components";
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
-
-// TODO: move to config file
-const lightboxOptions = {
-  settings: {
-    lightboxTransitionSpeed: 0.1,
-    lightboxTransitionTimingFunction: 'easeOut',
-  },
-  buttons: {
-    showAutoplayButton: false,
-    showCloseButton: true,
-    showDownloadButton: false,
-    showFullscreenButton: false,
-    showNextButton: true,
-    showPrevButton: true,
-    showThumbnailsButton: false,
-  },
-  caption: {
-    captionColor: "#a6cfa5",
-    captionTextTransform: "uppercase",
-    showCaption: true,
-  },
-  thumbnails: {
-    showThumbnails: false,
-  }
-};
+import Link from 'next/link';
 
 
-export async function getServerSideProps() {
-  aws.config.update({
-    accessKeyId: process.env.AWS_S3_ACCESS_KEY,
-    secretAccessKey: process.env.AWS_S3_SECRET,
-    region: 'us-east-1',
-    signatureVersion: 'v4',
-  });
+// export async function getServerSideProps() {
+//   aws.config.update({
+//     accessKeyId: process.env.AWS_S3_ACCESS_KEY,
+//     secretAccessKey: process.env.AWS_S3_SECRET,
+//     region: 'us-east-1',
+//     signatureVersion: 'v4',
+//   });
 
-  const s3 = new aws.S3();
+//   const s3 = new aws.S3();
 
-  const params = {
-    Bucket: 'yearbook-assets',
-    Prefix: '2021/200px',
-  };
+//   const params = {
+//     Bucket: 'yearbook-assets',
+//     Prefix: '2021/200px',
+//   };
 
-  const res = await new Promise((resolve, reject) => {
-    s3.listObjectsV2(params, (err, data) => {
-      if (err) reject(err);
+//   const res = await new Promise((resolve, reject) => {
+//     s3.listObjectsV2(params, (err, data) => {
+//       if (err) reject(err);
       
-      // Only include keys ending in .jpg -- filters out directories and any weird files like .DS_Store
-      const keys = data.Contents?.map((c) => c.Key).filter(k => k?.includes('.jpg')) || []
-      resolve(keys);
-    });
-  });
+//       // Only include keys ending in .jpg -- filters out directories and any weird files like .DS_Store
+//       const keys = data.Contents?.map((c) => c.Key).filter(k => k?.includes('.jpg')) || []
+//       resolve(keys);
+//     });
+//   });
 
-  return { props: { data: res } };
+//   return { props: { data: res } };
 
-}
+// }
 
 function Home(data: any) {
 
-  const images = data.data;
+  // const images = data.data;
 
   const [theme, setTheme] = useState(THEMES.DARK.name);
 
@@ -77,7 +52,7 @@ function Home(data: any) {
   }
 
   // if (error) return <div>failed to load</div>
-  if (!images) return <div>loading...</div>
+  // if (!images) return <div>loading...</div>
 
   // EXIF stuff .. make this async
   // const tags = ExifReader.load(data[0]).then(r => {
@@ -95,12 +70,21 @@ function Home(data: any) {
       <MainContentWrapper id='page-main-grid'>
         <MainContent>
           <Header>
-            <h1 style={{ margin: '6px'}}>2021</h1>
+            <h1 style={{ margin: '6px'}}>yearbooks</h1>
             <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
           </Header>
-          <SRLWrapper options={lightboxOptions}>
-            <Album items={images}/>
-          </SRLWrapper>
+          <div style={{ margin: '6px'}}>
+            <div>
+              <Link href='/album/2021/'>
+                <a>2021</a>
+              </Link>
+            </div>
+            <div>
+              <Link href='/album/2020/'>
+                <a>2020</a>
+              </Link>
+            </div>
+          </div>
         </MainContent>
       </MainContentWrapper>
     </ThemeProvider>
