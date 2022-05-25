@@ -10,17 +10,7 @@ import { useState } from 'react';
 
 import { ThemeProvider } from "styled-components";
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../../ThemeConfig';
-import { useRouter } from 'next/router'
-
-// const Album = () => {
-//   const router = useRouter()
-//   const { aid } = router.query
-
-//   return <p>Album: {aid}</p>
-// }
-
-
-
+import Link from 'next/link';
 
 // TODO: move to config file
 const lightboxOptions = {
@@ -57,13 +47,7 @@ export async function getServerSideProps(context: any) {
   });
 
   const s3 = new aws.S3();
-  // const router = useRouter()
-  
-  // console.log(context)
-  // console.log('quesry', context.query)
   const aid = context.query.aid
-  console.log(aid)
-  // const { aid } = router.query
 
   const params = {
     Bucket: 'yearbook-assets',
@@ -115,7 +99,7 @@ const Album = (data: any) => {
       <MainContentWrapper id='page-main-grid'>
         <MainContent>
           <Header>
-            <h1 style={{ margin: '6px'}}>{ year }</h1>
+            <h1 style={{ margin: '6px'}}><Link href='/'>←</Link> { year }</h1>
             <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
           </Header>
           <SRLWrapper options={lightboxOptions}>

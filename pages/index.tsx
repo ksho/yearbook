@@ -1,65 +1,19 @@
 import '../styles/Home.module.css'
 import styled from 'styled-components';
 
-import { SRLWrapper } from 'simple-react-lightbox';
-import ExifReader from 'exifreader';
-
-import aws from 'aws-sdk';
 import { useState } from 'react';
 
-import { ThemeProvider } from "styled-components";
+import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
 import Link from 'next/link';
 
 
-// export async function getServerSideProps() {
-//   aws.config.update({
-//     accessKeyId: process.env.AWS_S3_ACCESS_KEY,
-//     secretAccessKey: process.env.AWS_S3_SECRET,
-//     region: 'us-east-1',
-//     signatureVersion: 'v4',
-//   });
-
-//   const s3 = new aws.S3();
-
-//   const params = {
-//     Bucket: 'yearbook-assets',
-//     Prefix: '2021/200px',
-//   };
-
-//   const res = await new Promise((resolve, reject) => {
-//     s3.listObjectsV2(params, (err, data) => {
-//       if (err) reject(err);
-      
-//       // Only include keys ending in .jpg -- filters out directories and any weird files like .DS_Store
-//       const keys = data.Contents?.map((c) => c.Key).filter(k => k?.includes('.jpg')) || []
-//       resolve(keys);
-//     });
-//   });
-
-//   return { props: { data: res } };
-
-// }
-
-function Home(data: any) {
-
-  // const images = data.data;
-
+function Home() {
   const [theme, setTheme] = useState(THEMES.DARK.name);
 
   const toggleTheme = () => {
     theme == THEMES.LIGHT.name ? setTheme(THEMES.DARK.name) : setTheme(THEMES.LIGHT.name);
   }
-
-  // if (error) return <div>failed to load</div>
-  // if (!images) return <div>loading...</div>
-
-  // EXIF stuff .. make this async
-  // const tags = ExifReader.load(data[0]).then(r => {
-  //   const lala = 1;
-  // })
-  // const imageDate = tags['DateTimeOriginal'].description;
-  // const unprocessedTagValue = tags['DateTimeOriginal'].value;
 
   const activeTheme = theme == THEMES.LIGHT.name ? lightTheme : darkTheme
 
@@ -74,16 +28,16 @@ function Home(data: any) {
             <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
           </Header>
           <div style={{ margin: '6px'}}>
-            <div>
+            <h2>
               <Link href='/album/2021/'>
                 <a>2021</a>
               </Link>
-            </div>
-            <div>
+            </h2>
+            <h2>
               <Link href='/album/2020/'>
                 <a>2020</a>
               </Link>
-            </div>
+            </h2>
           </div>
         </MainContent>
       </MainContentWrapper>
