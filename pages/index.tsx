@@ -1,90 +1,29 @@
 import '../styles/Home.module.css'
-import styled from 'styled-components';
 
-import { SRLWrapper } from 'simple-react-lightbox';
-import ExifReader from 'exifreader';
-
-import aws from 'aws-sdk';
-import Album from './components/Album';
 import { useState } from 'react';
 
-import { ThemeProvider } from "styled-components";
+import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
+import Link from 'next/link';
+import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from '../components/SharedComponents';
 
-// TODO: move to config file
-const lightboxOptions = {
-  settings: {
-    lightboxTransitionSpeed: 0.1,
-    lightboxTransitionTimingFunction: 'easeOut',
+const ALBUMS = [
+  {
+    year: 2021,
+    description: `jack is ✌🏼! celebrated remotely. a couple classroom closures. interviewing is a rollercoaster, but I had a village around me. jabbed 💉 said so long to curalate. karl's spring staycation. jack and ro are best buds now. a 4 hour adult trip to soho. karl sr retires and gets his first foul ball ⚾️ kicked off thirty madison. 3 bears park, aquariums, and scootin'. all our friends bought houses! celebrated ang's bday for 12 hrs in pittsburgh .. #monrosesarewed pt. ii. mom's surprise 60th. friday nights at frankf🥨rd hall (the "we have kids now" b-side). bleachers.. how's it our 5 yr anniversary? a few visits to pub + kitchen. hay rides, pumpkins, and bouncing out on the north fork. middle-of-nowhere new jersey for a few days. jack shark attack. someone else takes our photo! an incognito engagement. baby peter! ang hits 500 rides 🚴🏼‍♀️ karl works migraine, then works hair loss. new hope -> middleburg -> pittsburgh -> chagrin falls -> fairton -> a bunch of manhattan. jack loves wall-e, cars and trucks, christmas jazz, and skeletons.`,
   },
-  buttons: {
-    showAutoplayButton: false,
-    showCloseButton: true,
-    showDownloadButton: false,
-    showFullscreenButton: false,
-    showNextButton: true,
-    showPrevButton: true,
-    showThumbnailsButton: false,
-  },
-  caption: {
-    captionColor: "#a6cfa5",
-    captionTextTransform: "uppercase",
-    showCaption: true,
-  },
-  thumbnails: {
-    showThumbnails: false,
+  {
+    year: 2020,
+    description: `jack is one; curalate is eight. planned and cancelled tuscany 2020. goose island one day, and locked down the next. all the time inside.. visits on the back slab. built bear trap 🐻 100 trips to the zoo. the peloton becomes the best ROI. ang cooks new and interesting foods.. karl photographs new and interesting foods. bazaarvoice acquires curalate 🎉 annapolis. #monrosesarewed. mom and dad escape to virginia. bucatini w/ pancetta is our meal of the year. los gallos. jack goes to school -- doesn't look back. biden/harris win.. see you all at four seasons total landscaping. a couple trips to new york. rode the central park loop. eagles are terrible. found a tradition in the navy yard. moonchild, phil collins, #QuestosWreckaShow, new night game bits. jack loves trucks, shot tower park, monsters inc, blueberries, and anything with a beat. flipped the circumstance, and leaned in to the three of us.`,
   }
-};
+];
 
-
-export async function getServerSideProps() {
-  aws.config.update({
-    accessKeyId: process.env.AWS_S3_ACCESS_KEY,
-    secretAccessKey: process.env.AWS_S3_SECRET,
-    region: 'us-east-1',
-    signatureVersion: 'v4',
-  });
-
-  const s3 = new aws.S3();
-
-  const params = {
-    Bucket: 'yearbook-assets',
-    Prefix: '2021/200px',
-  };
-
-  const res = await new Promise((resolve, reject) => {
-    s3.listObjectsV2(params, (err, data) => {
-      if (err) reject(err);
-      
-      // Only include keys ending in .jpg -- filters out directories and any weird files like .DS_Store
-      const keys = data.Contents?.map((c) => c.Key).filter(k => k?.includes('.jpg')) || []
-      resolve(keys);
-    });
-  });
-
-  return { props: { data: res } };
-
-}
-
-function Home(data: any) {
-
-  const images = data.data;
-
+function Home() {
   const [theme, setTheme] = useState(THEMES.DARK.name);
 
   const toggleTheme = () => {
     theme == THEMES.LIGHT.name ? setTheme(THEMES.DARK.name) : setTheme(THEMES.LIGHT.name);
   }
-
-  // if (error) return <div>failed to load</div>
-  if (!images) return <div>loading...</div>
-
-  // EXIF stuff .. make this async
-  // const tags = ExifReader.load(data[0]).then(r => {
-  //   const lala = 1;
-  // })
-  // const imageDate = tags['DateTimeOriginal'].description;
-  // const unprocessedTagValue = tags['DateTimeOriginal'].value;
 
   const activeTheme = theme == THEMES.LIGHT.name ? lightTheme : darkTheme
 
@@ -95,56 +34,30 @@ function Home(data: any) {
       <MainContentWrapper id='page-main-grid'>
         <MainContent>
           <Header>
-            <h1 style={{ margin: '6px'}}>2021</h1>
+            <h1 style={{ margin: '6px'}}>yearbooks</h1>
             <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
           </Header>
-          <SRLWrapper options={lightboxOptions}>
-            <Album items={images}/>
-          </SRLWrapper>
+          <div style={{ margin: '6px'}}>
+            {ALBUMS.map((a) => {
+              return (
+                <div key={a.year} style={{letterSpacing: '0.03em', lineHeight: '1.5em'}}>
+                  <h2>
+                    <Link href={`/album/${a.year}/`}><a>{a.year}</a></Link>
+                  </h2>
+                  <span>
+                    .. &nbsp;
+                  </span>
+                  <span>
+                    {a.description}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
         </MainContent>
       </MainContentWrapper>
     </ThemeProvider>
   );
 }
-
-const TopBar = styled.div`
-  background-color: #3f06dd;
-  height: 6px;
-  width: 104vw;
-`
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const LightSwitch = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  font-size: 30px;
-  margin: 6px;
-  cursor: pointer;
-`;
-
-const MainContentWrapper = styled.div`
-  display: flex;
-  /* flex-direction: column; */
-  justify-content: center;
-  margin: 6px;
-  width: 100vw;
-
-`;
-
-const MainContent = styled.div`
-  width: 85%;
-  margin: 6px;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    width: 100vw;
-  }
-
-`;
 
 export default Home

@@ -17,7 +17,7 @@ interface IOwnState {
   intervalId?: NodeJS.Timer,
 }
 
-export default class Album extends Component<IOwnProps, IOwnState> {
+export default class AlbumContent extends Component<IOwnProps, IOwnState> {
   constructor (props: any) {
     super(props);
     this.state = {
@@ -60,15 +60,22 @@ export default class Album extends Component<IOwnProps, IOwnState> {
   }
     
   trackScrolling = () => {
-    const { items, offset } = this.state;
+    const { items, offset, renderItems } = this.state;
 
     const wrappedElement = document.getElementById('page-main-grid');
     if (wrappedElement && this.isBottom(wrappedElement) && (items.length > offset)) {
       console.log('header bottom reached');
+      // console.log("items", items)
+      // console.log("itemslength", items.length)
+      // console.log("renderItemsLength", renderItems.length)
+      // console.log("offset", offset)
+      // console.log("offset", offset)
 
       // Rudimentary lazy loading.
       const newOffset = offset + BATCH_SIZE;
       const newRenderItems = items.slice(0, newOffset);
+      // console.log("newOffset", newOffset)
+      // console.log("newrenderItemsLength", renderItems.length)
       this.setState({
         items,
         renderItems: newRenderItems,
