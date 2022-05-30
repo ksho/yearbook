@@ -1,12 +1,11 @@
 import '../styles/Home.module.css'
-import styled from 'styled-components';
 
 import { useState } from 'react';
 
 import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
 import Link from 'next/link';
-
+import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from './components/SharedComponents';
 
 function Home() {
   const [theme, setTheme] = useState(THEMES.DARK.name);
@@ -44,45 +43,5 @@ function Home() {
     </ThemeProvider>
   );
 }
-
-const TopBar = styled.div`
-  background-color: #3f06dd;
-  height: 6px;
-  width: 104vw;
-`
-
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-`;
-
-const LightSwitch = styled.div`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  font-size: 30px;
-  margin: 6px;
-  cursor: pointer;
-`;
-
-const MainContentWrapper = styled.div`
-  display: flex;
-  /* flex-direction: column; */
-  justify-content: center;
-  margin: 6px;
-  width: 100vw;
-
-`;
-
-const MainContent = styled.div`
-  width: 85%;
-  margin: 6px;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    width: 100vw;
-  }
-
-`;
 
 export default Home
