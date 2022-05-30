@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
 import Link from 'next/link';
-import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from './components/SharedComponents';
+import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from '../components/SharedComponents';
 
 const ALBUMS = [
   {

@@ -4,13 +4,13 @@ import { SRLWrapper } from 'simple-react-lightbox';
 import ExifReader from 'exifreader';
 
 import aws from 'aws-sdk';
-import AlbumContent from '../components/AlbumContent';
+import AlbumContent from '../../components/AlbumContent';
 import { useState } from 'react';
 
 import { ThemeProvider } from "styled-components";
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../../ThemeConfig';
 import Link from 'next/link';
-import { TopBar, MainContentWrapper, MainContent, Header, LightSwitch } from '../components/SharedComponents';
+import { TopBar, MainContentWrapper, MainContent, Header, LightSwitch } from '../../components/SharedComponents';
 
 // TODO: move to config file
 const lightboxOptions = {
