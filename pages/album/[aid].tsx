@@ -37,6 +37,7 @@ const lightboxOptions = {
   }
 };
 
+const SUPPORTED_FILES = ['jpg', 'gif'];
 
 export async function getServerSideProps(context: any) {
   aws.config.update({
@@ -58,14 +59,17 @@ export async function getServerSideProps(context: any) {
     s3.listObjectsV2(params, (err, data) => {
       if (err) reject(err);
       
-      // Only include keys ending in .jpg -- filters out directories and any weird files like .DS_Store
-      const keys = data.Contents?.map((c) => c.Key).filter(k => k?.includes('.jpg')) || []
+      // Only include keys ending in SUPPORTED_FILES -- filters out directories and any weird files like .DS_Store
+      const keys = data.Contents?.
+        map((c) => c.Key).
+        // change includes to endswith?
+        filter(k => SUPPORTED_FILES.some((ext) => k?.toLowerCase().includes(ext))) || []
+
       resolve(keys);
     });
   });
 
   return { props: { data: res, year: aid } };
-
 }
 
 const Album = (data: any) => {
