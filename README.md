@@ -14,9 +14,9 @@ This application displays the photos for my annual yearbook project.
 # Usage
 
 ## Sync assets to S3
-_doesn't sync video_  
-`cd $LOCAL_PHOTO_DIRECTORY`
-`aws s3 sync . s3://yearbook-assets/ --delete --acl public-read --profile default --exclude "*" --include "*.jpg"`
+- _doesn't sync video_
+- `cd $LOCAL_PHOTO_DIRECTORY`
+- `aws s3 sync . s3://yearbook-assets/ --delete --acl public-read --profile default --exclude "*" --include "*.jpg"`
 
 ## Converting videos to gif
 ```
