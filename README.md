@@ -18,9 +18,19 @@ This application displays the photos for my annual yearbook project.
 - `cd $LOCAL_PHOTO_DIRECTORY`
 - `aws s3 sync . s3://yearbook-assets/ --delete --acl public-read --profile default --exclude "*" --include "*.jpg"`
 
+## Converting videos to webp
+```
+for i in *.mov; do ffmpeg -ss 00:00:00.000 -i "$i" -vcodec libwebp -q 50 -r 12 -vf 'scale=1000:1000:force_original_aspect_ratio=decrease' -loop 0 -t 00:00:12.000 "${i%.*}_50.webp"; done
+```
+- converts a folder of video -> webp
+- longest side 1000px
+- first 12 secs
+- 12 frames/sec
+- quality 50
+
 ## Converting videos to gif
 ```
-for i in *; do ffmpeg -ss 00:00:00.000 -i "$i" -pix_fmt rgb24 -r 12 -vf 'scale=600:600:force_original_aspect_ratio=decrease' -t 00:00:10.000 "${i%.*}.gif"; done
+for i in *.MOV; do ffmpeg -ss 00:00:00.000 -i "$i" -pix_fmt rgb24 -r 12 -vf 'scale=600:600:force_original_aspect_ratio=decrease' -t 00:00:10.000 "${i%.*}.gif"; done
 ```
 
 - converts a folder of video -> gif
