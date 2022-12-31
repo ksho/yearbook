@@ -4,7 +4,7 @@ import styled from 'styled-components';
 // import LazyImage from './LazyImage';
 
 type TParams =  { id: string };
-const BATCH_SIZE = 20;
+const BATCH_SIZE = 15;
 
 interface IOwnProps {
   items: string[],
