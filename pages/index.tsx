@@ -10,7 +10,18 @@ import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from '..
 const ALBUMS = [
   {
     year: 2022,
-    description: `lalala`,
+    description: `it was a year! we got through with a lot of help from our friends + family, and will rememeber this one as something special because of that. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    
+    we spend a lot of time in parks, and jack has a name for each one. In particular, "our park" was the center of so much joy- from going to the ice cream truck, the halloween parade, and nighttime snow diving. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+
+    we froze in NYC for Tom’s bday, and made it out of that karaoke room covid-free .. all the basketball games at yards .. jack is 3! .. sunday donuts .. baby sho 2.0, coming halloween .. final four once more .. the shoulers take a last minute trip to mission beach, and karl explains the relationship between lawn chairs and snow to his san diego barista .. jack finally sees "dumbo" IRL .. we need those bikes, the saltwater, and the warm. districts at union transfer. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    
+    mom + dad escape to skytop and nyc for the music man .. jack’s temp queen bed .. we ate so many donuts .. ang’s teen life bday with third eye blind + taking back sunday .. jack saw dashboard + andrew mcmahon for his first show at the mann. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    
+    chesapeake house .. a bunch of burrata .. grocery shopping at the museum .. jack’s a bluebird now! .. all the rides at dorney .. red october .. henry’s here! 🎽 , and ang is an even stronger superhero .. m+m get hitched .. "scraper sky" .. jack loves each holiday more than the last. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    
+    five seconds flat, being funny in a foreign language, midnights.
+    `,
   },
   {
     year: 2021,
