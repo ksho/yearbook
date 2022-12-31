@@ -10,7 +10,7 @@ import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from '..
 const ALBUMS = [
   {
     year: 2022,
-    description: `it was a year! we got through with a lot of help from our friends + family, and will rememeber this one as something special because of that. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    description: `it was a year! we got through with a lot of help from our friends + family, and will remember this one as something special because of that. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
     
     we spend a lot of time in parks, and jack has a name for each one. In particular, "our park" was the center of so much joy- from going to the ice cream truck, the halloween parade, and nighttime snow diving. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
 
