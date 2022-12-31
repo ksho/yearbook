@@ -51,6 +51,13 @@ export default class AlbumContent extends Component<IOwnProps, IOwnState> {
   }
 
   getImageUrlBySize(path: string, size: string) {
+    // Experimenting with future full video support
+    // if (size === '3000px' && path.indexOf('.gif') > 0) {
+    //   return `https://yearbook-assets.s3.amazonaws.com/${path.replace('.gif', '.mov')}`;
+    // } else {
+    //   return `https://yearbook-assets.s3.amazonaws.com/${path.replace('200px', size)}`;
+    // }
+
     return `https://yearbook-assets.s3.amazonaws.com/${path.replace('200px', size)}`;
   }
 

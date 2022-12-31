@@ -9,6 +9,21 @@ import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from '..
 
 const ALBUMS = [
   {
+    year: 2022,
+    description: `it was a year! we got through with a lot of help from our friends + family, and will rememeber this one as something special because of that. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    
+    we spend a lot of time in parks, and jack has a name for each one. In particular, "our park" was the center of so much joy- from going to the ice cream truck, the halloween parade, and nighttime snow diving. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+
+    we froze in NYC for Tom’s bday, and made it out of that karaoke room covid-free .. all the basketball games at yards .. jack is 3! .. sunday donuts .. baby sho 2.0, coming halloween .. final four once more .. the shoulers take a last minute trip to mission beach, and karl explains the relationship between lawn chairs and snow to his san diego barista .. jack finally sees "dumbo" IRL .. we need those bikes, the saltwater, and the warm. districts at union transfer. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    
+    mom + dad escape to skytop and nyc for the music man .. jack’s temp queen bed .. we ate so many donuts .. ang’s teen life bday with third eye blind + taking back sunday .. jack saw dashboard + andrew mcmahon for his first show at the mann. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    
+    chesapeake house .. a bunch of burrata .. grocery shopping at the museum .. jack’s a bluebird now! .. all the rides at dorney .. red october .. henry’s here! 🎽 , and ang is an even stronger superhero .. m+m get hitched .. "scraper sky" .. jack loves each holiday more than the last. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+    
+    five seconds flat, being funny in a foreign language, midnights.
+    `,
+  },
+  {
     year: 2021,
     description: `jack is ✌🏼! celebrated remotely. a couple classroom closures. interviewing is a rollercoaster, but I had a village around me. jabbed 💉 said so long to curalate. karl's spring staycation. jack and ro are best buds now. a 4 hour adult trip to soho. karl sr retires and gets his first foul ball ⚾️ kicked off thirty madison. 3 bears park, aquariums, and scootin'. all our friends bought houses! celebrated ang's bday for 12 hrs in pittsburgh .. #monrosesarewed pt. ii. mom's surprise 60th. friday nights at frankf🥨rd hall (the "we have kids now" b-side). bleachers.. how's it our 5 yr anniversary? a few visits to pub + kitchen. hay rides, pumpkins, and bouncing out on the north fork. middle-of-nowhere new jersey for a few days. jack shark attack. someone else takes our photo! an incognito engagement. baby peter! ang hits 500 rides 🚴🏼‍♀️ karl works migraine, then works hair loss. new hope -> middleburg -> pittsburgh -> chagrin falls -> fairton -> a bunch of manhattan. jack loves wall-e, cars and trucks, christmas jazz, and skeletons.`,
   },

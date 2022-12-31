@@ -37,7 +37,7 @@ const lightboxOptions = {
   }
 };
 
-const SUPPORTED_FILES = ['jpg', 'gif'];
+const SUPPORTED_FILES = ['jpg', 'gif', 'webp'];
 
 export async function getServerSideProps(context: any) {
   aws.config.update({
@@ -50,13 +50,19 @@ export async function getServerSideProps(context: any) {
   const s3 = new aws.S3();
   const aid = context.query.aid
 
-  const params = {
+  const photoParams = {
     Bucket: 'yearbook-assets',
     Prefix: `${aid}/200px`,
   };
 
-  const res = await new Promise((resolve, reject) => {
-    s3.listObjectsV2(params, (err, data) => {
+  const videoParams = {
+    Bucket: 'yearbook-assets',
+    Prefix: `${aid}/video/webp`,
+  };
+
+  // Get photos
+  const photoResult: (string | undefined)[] = await new Promise((resolve, reject) => {
+    s3.listObjectsV2(photoParams, (err, data) => {
       if (err) reject(err);
       
       // Only include keys ending in SUPPORTED_FILES -- filters out directories and any weird files like .DS_Store
@@ -67,6 +73,43 @@ export async function getServerSideProps(context: any) {
 
       resolve(keys);
     });
+  });
+
+  // Get videos
+  const videoResult: (string | undefined)[] = await new Promise((resolve, reject) => {
+    s3.listObjectsV2(videoParams, (err, data) => {
+      if (err) reject(err);
+
+      // Only include keys ending in SUPPORTED_FILES -- filters out directories and any weird files like .DS_Store
+      const keys = data.Contents?.
+        map((c) => c.Key).
+        // change includes to endswith?
+        filter(k => SUPPORTED_FILES.some((ext) => k?.toLowerCase().includes(ext))) || []
+
+      resolve(keys);
+    });
+  });
+
+  // Concat the photos and videos and custom sort
+  // TODO: faster to do a smarter merge
+  const res = videoResult.concat(photoResult).sort((a, b) =>{
+    const aParts = a?.split('/');
+    const bParts = b?.split('/');
+
+    let aTime = '';
+    let bTime = '';
+
+    if (aParts && bParts) {
+      aTime = aParts[aParts.length - 1];
+      bTime = bParts[bParts.length - 1];     
+    }
+
+    if (!aTime || aTime < bTime) {
+      return -1;
+    } else if (!bTime || aTime > bTime) {
+      return 1;
+    }
+    return 0;
   });
 
   return { props: { data: res, year: aid } };
