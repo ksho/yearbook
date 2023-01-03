@@ -23,8 +23,8 @@ const lightboxOptions = {
     showCloseButton: true,
     showDownloadButton: false,
     showFullscreenButton: false,
-    showNextButton: true,
-    showPrevButton: true,
+    showNextButton: false,
+    showPrevButton: false,
     showThumbnailsButton: false,
   },
   caption: {
