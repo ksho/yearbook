@@ -9,6 +9,20 @@ import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from '..
 
 const ALBUMS = [
   {
+    year: 2024,
+    description: `
+      '2024 ..  in upstate NY .. shobro summer pool club .. karl lands a promo, and ang does a race! .. so many parks 🌳 /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+
+      flying kites .. riding atvs .. sleeping outside .. henry's first day of school! /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+
+      recording songs with friends .. a 40th anniversary on the water .. alpen rose 🌹 .. hank is one! .. family photos .. our biggest halloween yet .. a quick sprint to AC for to see friends run .. shobros love their pumpkins .. karl tries to make italian coffee beverages. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
+
+      ang has some presentations in front of big crowds .. this is the year of fancy holiday events and tinsel .. best christmas tree ever 🎄 -- go to rocky yo mo's under I95 .. karl's team works a gauntlet, and ships .. jack LOVES the nutcracker.
+
+      m83, dmb, jm, lizzy mcalpine, death cab, andrew mcmahon.
+    `,
+  },
+  {
     year: 2023,
     description: `
       '23 was a full year! we celebrated birthdays, took some little trips, achieved victories, and grew together. /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /  /
