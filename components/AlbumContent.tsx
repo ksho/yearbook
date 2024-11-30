@@ -98,7 +98,7 @@ export default class AlbumContent extends Component<IOwnProps, IOwnState> {
           <ItemWrapper key={index}>
             <a href={this.getImageUrlBySize(p, '3000px')}>
               <FlexImage
-                src={this.getImageUrlBySize(p, '1000px')}
+                src={this.getImageUrlBySize(p, '2000px')}
                 loading="lazy"
               />
               {/* <LazyImage src={`https://yearbook-assets.s3.amazonaws.com/${p.replace('200px', '1000px')}`} placeholder={`https://yearbook-assets.s3.amazonaws.com/${p}`} key={p}/> */}
