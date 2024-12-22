@@ -150,7 +150,7 @@ const Album = (data: any) => {
             <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
           </Header>
           <SRLWrapper options={lightboxOptions}>
-            <AlbumContent items={images}/>
+            <AlbumContent items={images} year={year}/>
           </SRLWrapper>
         </MainContent>
       </MainContentWrapper>
