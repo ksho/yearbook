@@ -76,7 +76,7 @@ export default class AlbumContent extends Component<IOwnProps, IOwnState> {
 
   isBottom(el: HTMLElement) {
     // 1000px from the bottom
-    return el.getBoundingClientRect().bottom <= window.innerHeight + 1000;
+    return el.getBoundingClientRect().bottom <= window.innerHeight + 1500;
   }
     
   trackScrolling = () => {
