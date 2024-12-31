@@ -134,9 +134,9 @@ function Home() {
                     <Link href={`/album/${a.year}/`}><a>{a.year}</a></Link>
                   </h2>
                   <div style={{ paddingLeft: '12px'}}>
-                    {a.description.map((d) =>
+                    {a.description.map((para) =>
                       <div>
-                        {d}
+                        {para}
                         <br/><br/>
                       </div>
                     )}
