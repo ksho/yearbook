@@ -12,7 +12,7 @@ const ALBUMS = [
   {
     year: 2024,
     description: [
-      `The four of us enjoyed a memorable year, where looking back has us full of gratitude for what we got to see, and who we shared it with.`,
+      `The four of us enjoyed a memorable year, where looking back has us full of gratitude for what we got to see and who we shared it with.`,
       
       `Our guy Jack turned 5, finished his days as a Rainbow, and started Kindergarten. Him and Angela have all but made it through the first 4 Harry Potters. His favorite songs this year, far and away, were Waffle House, Beautiful Things, Dynamite, AOK, and Sunroof. Jack joined his first baseball team, learned to swim, and started some piano. Add us to the list of all the parents that say it’s going too fast!`,
       
