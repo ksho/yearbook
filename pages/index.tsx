@@ -1,6 +1,7 @@
 import '../styles/Home.module.css'
 
 import { useState } from 'react';
+import styled from 'styled-components';
 
 import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
@@ -130,9 +131,9 @@ function Home() {
             {ALBUMS.map((a) => {
               return (
                 <div key={a.year} style={{letterSpacing: '0.03em', lineHeight: '1.5em'}}>
-                  <h2>
+                  <YearHeader>
                     <Link href={`/album/${a.year}/`}><a>{a.year}</a></Link>
-                  </h2>
+                  </YearHeader>
                   <div style={{ paddingLeft: '12px'}}>
                     {a.description.map((para) =>
                       <div>
@@ -150,5 +151,14 @@ function Home() {
     </ThemeProvider>
   );
 }
+
+const YearHeader = styled.h2`
+    text-decoration: none;
+    /* text-shadow: 3px -3px #3058c5, 5px -5px #d5b6c5; */
+    text-shadow: 3px -3px #3058c5;
+    font-weight: 900;
+    letter-spacing: 4px;
+    padding-left: 2px;
+`;
 
 export default Home
