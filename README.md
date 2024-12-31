@@ -7,16 +7,14 @@ This application displays the photos for my annual yearbook project.
 - Hosted on Vercel
 
 # Features on deck:
-- Support for multiple albums
 - Read EXIF data from images to display photo captions
 - Improve grid layout so portrait images aren't chopped so much at the top and bottom
 
 # Usage
 
 ## Sync assets to S3
-- _doesn't sync video_
 - `cd $LOCAL_PHOTO_DIRECTORY`
-- `aws s3 sync . s3://yearbook-assets/ --delete --acl public-read --profile default --exclude "*" --include "*.jpg"`
+- `aws s3 sync . s3://yearbook-assets/ --delete --acl public-read --profile default --exclude "*" --include "*.jpg" --include "*.webp" --include "*.gif" --size-only`
 
 ## Converting videos to webp
 ```

@@ -6,12 +6,22 @@ import styled from 'styled-components';
 type TParams =  { id: string };
 const BATCH_SIZE = 15;
 
+const IMAGE_SIZES = {
+  SMALL: '200px',
+  MEDIUM_OLD: '1000px',
+  MEDIUM: '2000px',
+  LARGE: '3000px',
+}
+
 interface IOwnProps {
   items: string[],
+  year: string,
 }
 
 interface IOwnState {
   items: any,
+  imageSizeMed: string,
+  imageSizeLarge: string,
   renderItems: string[],
   offset: number,
   intervalId?: NodeJS.Timer,
@@ -20,8 +30,11 @@ interface IOwnState {
 export default class AlbumContent extends Component<IOwnProps, IOwnState> {
   constructor (props: any) {
     super(props);
+    const { year } = props;
     this.state = {
       items: null,
+      imageSizeMed: ['2024', '2023'].includes(year) ? IMAGE_SIZES.MEDIUM : IMAGE_SIZES.MEDIUM_OLD,
+      imageSizeLarge: IMAGE_SIZES.LARGE,
       renderItems: [],
       offset: 0,
       intervalId: undefined,
@@ -58,12 +71,12 @@ export default class AlbumContent extends Component<IOwnProps, IOwnState> {
     //   return `https://yearbook-assets.s3.amazonaws.com/${path.replace('200px', size)}`;
     // }
 
-    return `https://yearbook-assets.s3.amazonaws.com/${path.replace('200px', size)}`;
+    return `https://yearbook-assets.s3.amazonaws.com/${path.replace(IMAGE_SIZES.SMALL, size)}`;
   }
 
   isBottom(el: HTMLElement) {
     // 1000px from the bottom
-    return el.getBoundingClientRect().bottom <= window.innerHeight + 1000;
+    return el.getBoundingClientRect().bottom <= window.innerHeight + 1500;
   }
     
   trackScrolling = () => {
@@ -93,12 +106,13 @@ export default class AlbumContent extends Component<IOwnProps, IOwnState> {
   };
 
   childElements = (imagePaths: string[]) => {
+      const { imageSizeMed, imageSizeLarge } = this.state;
       const imageList = imagePaths.map((p: string, index: number) => {
         return (
           <ItemWrapper key={index}>
-            <a href={this.getImageUrlBySize(p, '3000px')}>
+            <a href={this.getImageUrlBySize(p, imageSizeLarge)}>
               <FlexImage
-                src={this.getImageUrlBySize(p, '1000px')}
+                src={this.getImageUrlBySize(p, imageSizeMed)}
                 loading="lazy"
               />
               {/* <LazyImage src={`https://yearbook-assets.s3.amazonaws.com/${p.replace('200px', '1000px')}`} placeholder={`https://yearbook-assets.s3.amazonaws.com/${p}`} key={p}/> */}
