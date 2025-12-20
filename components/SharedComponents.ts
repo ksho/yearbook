@@ -33,6 +33,7 @@ export const MainContentWrapper = styled.div`
 
 export const MainContent = styled.div`
   width: 85%;
+  max-width: 1250px;
   margin: 6px;
 
   @media (max-width: 768px) {

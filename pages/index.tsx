@@ -10,6 +10,22 @@ import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from '..
 
 const ALBUMS = [
   {
+    year: 2025,
+    description: [
+      `2025 was a full one -- there were tee-ball games, ER visits, date nights, work successes, weekend mornings at the Navy Yard, and roof hangs. We've found the routine, and at the same time do our best to break out of it and look around.`,
+
+      `Henry is a classic rowhome kid who runs loops from front to back almost daily -- often with a wand and cape. Second up is probably a fondness for playing his guitars -- and while he has some work to do on putting out anything recognizeable, there's a real passion to his performance. Credit is due to Hank for usually being the one that reminds us to pray before dinner -- though somehow he's always the first one trying to leave the table. We love witnessing him emulate Jack, and all of the charming threenager moments in-between.`,
+
+      `Karl threw more football passes this year than all of his prior 39 years combined -- we definitely didn't have that on the bingo card. Taking Jack to see, eh hem, Jack's Mannequin, was a top memory, as was going to see the Phillies hit 8 homeruns in one game. He loves the slow weekend mornings making coffee and listening to records with the fam. An unexpected devotion to the treadmill hit him the last few months, and he ended the year having ridden 96 subways, 148 ubers, and 266 buses.`,
+
+      `Angela likes to use the phrase beautiful chaos, which is often a perfect synopsis of two boys jumping off the highest spots they can find. We're pretty sure she broke a reading record this year, which doesn't even include the out-loud Harry Potter for the boys. Ang had an unfortunate run-in with the sidewalk that broke her ankle, but she's since fully recovered and back in the saddle. Her favorite moments included Henry's 3rd birthday party in the park -- bubble machine, stick wands, and all -- and post-mass dinners with friends.`,
+
+      `For Jack, this year was an explosion of interests. Baseball, football, chess, puzzles, mazes, going to concerts -- he's been going deep on so much, and loves to go to a *ball game. He conquered riding a two-wheeler in time for the neighborhood ride-to-school days, and called out swimming in Grandma and Grandpas pool, and going to see Jack's Mannequin with Mom and Dad as his favorites. His piano skills have gotten to reading music and playing with two hands. Jack also worked really hard (as did Mom) getting through OIT for tree nuts this year, and is now eating them every night!`,
+
+      `We were pretty local in our travel this year and made our way to NYC 🗽, Middlesburg 🍇, the Hudson Valley 🌳 🏊, and Hershey 🍫. Best dinners were at Tulip Pasta Bar, Liberty Kitchen, Little Walters, Tesiny, and Buratta.`,
+    ]
+  },
+  {
     year: 2024,
     description: [
       `The four of us enjoyed a memorable year, where looking back has us full of gratitude for what we got to see and who we shared it with.`,
