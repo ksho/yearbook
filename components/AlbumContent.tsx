@@ -33,7 +33,7 @@ export default class AlbumContent extends Component<IOwnProps, IOwnState> {
     const { year } = props;
     this.state = {
       items: null,
-      imageSizeMed: ['2024', '2023', '2013', '2012', '2011'].includes(year) ? IMAGE_SIZES.MEDIUM : IMAGE_SIZES.MEDIUM_OLD,
+      imageSizeMed: ['2025', '2024', '2023', '2013', '2012', '2011'].includes(year) ? IMAGE_SIZES.MEDIUM : IMAGE_SIZES.MEDIUM_OLD,
       imageSizeLarge: IMAGE_SIZES.LARGE,
       renderItems: [],
       offset: 0,
