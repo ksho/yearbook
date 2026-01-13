@@ -148,11 +148,11 @@ function Home() {
               return (
                 <div key={a.year} style={{letterSpacing: '0.03em', lineHeight: '1.5em'}}>
                   <YearHeader>
-                    <Link href={`/album/${a.year}/`}><a>{a.year}</a></Link>
+                    <Link href={`/album/${a.year}/`}>{a.year}</Link>
                   </YearHeader>
                   <div style={{ paddingLeft: '12px'}}>
-                    {a.description.map((para) =>
-                      <div>
+                    {a.description.map((para, index) =>
+                      <div key={index}>
                         {para}
                         <br/><br/>
                       </div>

@@ -1,6 +1,5 @@
 import '../../styles/Home.module.css'
 
-import { SRLWrapper } from 'simple-react-lightbox';
 import ExifReader from 'exifreader';
 
 import aws from 'aws-sdk';
@@ -11,31 +10,8 @@ import { ThemeProvider } from "styled-components";
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../../ThemeConfig';
 import Link from 'next/link';
 import { TopBar, MainContentWrapper, MainContent, Header, LightSwitch } from '../../components/SharedComponents';
-
-// TODO: move to config file
-const lightboxOptions = {
-  settings: {
-    lightboxTransitionSpeed: 0.1,
-    lightboxTransitionTimingFunction: 'easeOut',
-  },
-  buttons: {
-    showAutoplayButton: false,
-    showCloseButton: true,
-    showDownloadButton: false,
-    showFullscreenButton: false,
-    showNextButton: false,
-    showPrevButton: false,
-    showThumbnailsButton: false,
-  },
-  caption: {
-    captionColor: "#a6cfa5",
-    captionTextTransform: "uppercase",
-    showCaption: true,
-  },
-  thumbnails: {
-    showThumbnails: false,
-  }
-};
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
 
 const SUPPORTED_FILES = ['jpg', 'gif', 'webp'];
 
@@ -122,9 +98,16 @@ const Album = (data: any) => {
   const year = data.year;
 
   const [theme, setTheme] = useState(THEMES.DARK.name);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const toggleTheme = () => {
     theme == THEMES.LIGHT.name ? setTheme(THEMES.DARK.name) : setTheme(THEMES.LIGHT.name);
+  }
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
   }
 
   // if (error) return <div>failed to load</div>
@@ -149,9 +132,15 @@ const Album = (data: any) => {
             <h1 style={{ margin: '6px'}}><Link href='/'>←</Link> { year }</h1>
             <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
           </Header>
-          <SRLWrapper options={lightboxOptions}>
-            <AlbumContent items={images} year={year}/>
-          </SRLWrapper>
+          <AlbumContent items={images} year={year} onImageClick={openLightbox}/>
+          <Lightbox
+            open={lightboxOpen}
+            close={() => setLightboxOpen(false)}
+            index={lightboxIndex}
+            slides={images.map((path: string) => ({
+              src: `https://yearbook-assets.s3.amazonaws.com/${path.replace('200px', '3000px')}`
+            }))}
+          />
         </MainContent>
       </MainContentWrapper>
     </ThemeProvider>

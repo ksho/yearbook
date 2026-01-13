@@ -2,6 +2,13 @@
 module.exports = {
   reactStrictMode: true,
   images: {
-    domains: ['yearbook-assets.s3.amazonaws.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'yearbook-assets.s3.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
 }
