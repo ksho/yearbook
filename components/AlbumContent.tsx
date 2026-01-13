@@ -16,6 +16,7 @@ const IMAGE_SIZES = {
 interface IOwnProps {
   items: string[],
   year: string,
+  onImageClick: (index: number) => void,
 }
 
 interface IOwnState {
@@ -24,7 +25,7 @@ interface IOwnState {
   imageSizeLarge: string,
   renderItems: string[],
   offset: number,
-  intervalId?: NodeJS.Timer,
+  intervalId?: ReturnType<typeof setInterval>,
 }
 
 export default class AlbumContent extends Component<IOwnProps, IOwnState> {
@@ -106,21 +107,21 @@ export default class AlbumContent extends Component<IOwnProps, IOwnState> {
   };
 
   childElements = (imagePaths: string[]) => {
-      const { imageSizeMed, imageSizeLarge } = this.state;
+      const { imageSizeMed } = this.state;
+      const { onImageClick } = this.props;
       const imageList = imagePaths.map((p: string, index: number) => {
         return (
           <ItemWrapper key={index}>
-            <a href={this.getImageUrlBySize(p, imageSizeLarge)}>
-              <FlexImage
-                src={this.getImageUrlBySize(p, imageSizeMed)}
-                loading="lazy"
-              />
-              {/* <LazyImage src={`https://yearbook-assets.s3.amazonaws.com/${p.replace('200px', '1000px')}`} placeholder={`https://yearbook-assets.s3.amazonaws.com/${p}`} key={p}/> */}
-            </a>
-          </ItemWrapper> 
+            <FlexImage
+              src={this.getImageUrlBySize(p, imageSizeMed)}
+              loading="lazy"
+              onClick={() => onImageClick(index)}
+              style={{ cursor: 'pointer' }}
+            />
+          </ItemWrapper>
         )
       });
-      
+
       return imageList;
     };
 

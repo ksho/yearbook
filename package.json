@@ -6,27 +6,27 @@
     "build": "next build",
     "export": "next build && next export",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "aws-sdk": "^2.1045.0",
     "eslint-config-prettier": "^8.5.0",
     "exifreader": "^4.1.0",
-    "next": "^12.0.7",
+    "next": "^16.0.10",
     "prettier": "^2.6.2",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "simple-react-lightbox": "^3.6.9-0",
-    "styled-components": "^5.3.3"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "styled-components": "^5.3.3",
+    "yet-another-react-lightbox": "^3.25.1"
   },
   "devDependencies": {
-    "@types/node": "16.11.10",
-    "@types/react": "17.0.37",
-    "@types/simple-react-lightbox": "^3.6.1",
+    "@types/node": "^20.9.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
     "@types/styled-components": "^5.1.15",
     "babel-plugin-styled-components": "^2.0.2",
-    "eslint": "7.32.0",
-    "eslint-config-next": "12.0.4",
-    "typescript": "4.5.2"
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.10",
+    "typescript": "^5.1.0"
   }
 }
