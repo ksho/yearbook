@@ -31,24 +31,21 @@ interface IOwnState {
 export default class AlbumContent extends Component<IOwnProps, IOwnState> {
   constructor (props: any) {
     super(props);
-    const { year } = props;
+    const { year, items } = props;
+    // Seed the first batch here rather than in componentDidMount so it is present in the
+    // server-rendered HTML -- otherwise the markup ships with no <img> tags at all and the
+    // browser's preload scanner can't start fetching until the bundle has hydrated.
     this.state = {
-      items: null,
+      items,
       imageSizeMed: ['2025', '2024', '2023', '2013', '2012', '2011'].includes(year) ? IMAGE_SIZES.MEDIUM : IMAGE_SIZES.MEDIUM_OLD,
       imageSizeLarge: IMAGE_SIZES.LARGE,
-      renderItems: [],
-      offset: 0,
+      renderItems: items.slice(0, BATCH_SIZE),
+      offset: BATCH_SIZE,
       intervalId: undefined,
     }
   }
 
   componentDidMount() {
-    const { items } = this.props;
-    this.setState({
-      items,
-      renderItems: items.slice(0, BATCH_SIZE),
-      offset: BATCH_SIZE,
-    });
     document.addEventListener('scroll', this.trackScrolling);
 
     const intervalId = setInterval(this.trackScrolling, 500);
