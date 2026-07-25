@@ -17,7 +17,7 @@ This application displays the photos for my annual yearbook project.
 - `cd $LOCAL_PHOTO_DIRECTORY`
 - `aws s3 sync . s3://yearbook-assets/ --delete --acl public-read --profile default --exclude "*" --include "*.jpg" --include "*.webp" --include "*.gif" --size-only`
 
-New files need no CloudFront invalidation. If you *overwrite* an existing key, invalidate it -- and note that browsers which already cached it will keep the old copy for up to a year, so uploading under a new filename is safer:
+New files need no CloudFront invalidation. If you *overwrite* an existing shot, it propagates on its own within a day (assets are cached for 24h, not permanently). To push it out immediately:
 - `aws cloudfront create-invalidation --distribution-id E2AKQTW7LH879C --paths "/2025/2000px/*"`
 
 ## Converting jpgs --> webp

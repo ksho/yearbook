@@ -94,10 +94,14 @@ Images are **read** through CloudFront, not directly from S3. The bucket remains
 The S3 objects carry **no** `Cache-Control` of their own. CloudFront attaches one at the edge via response headers policy `05df1ff4-a688-4ef8-b6bc-88d7583ad677` (`yearbook-assets-long-cache`), which sets:
 
 ```
-Cache-Control: public, max-age=31536000, immutable
+Cache-Control: public, max-age=86400, stale-while-revalidate=604800
 ```
 
-**This means overwriting an existing key is effectively permanent for anyone who already loaded it.** Keys are timestamp-based so this rarely comes up, but if you do replace a photo in place, prefer uploading under a new filename. A CloudFront invalidation clears the edge cache but cannot clear browsers that already cached the old bytes:
+Deliberately **not** `immutable`, and deliberately a day rather than a year: old shots get re-edited and re-uploaded in place, especially around December/January, so updates have to be able to propagate. A viewer sees a re-edited photo within a day on their own, and `stale-while-revalidate` means they get the cached copy instantly while the new one fetches in the background.
+
+This lines up with the edge, which also holds one day -- because S3 sends no `Cache-Control`, CloudFront falls back to the `CachingOptimized` cache policy's 86400s `DefaultTTL`.
+
+To push an update out immediately rather than waiting a day, invalidate the edge:
 
 ```bash
 aws cloudfront create-invalidation --distribution-id E2AKQTW7LH879C --paths "/2025/2000px/*"
