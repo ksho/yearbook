@@ -185,22 +185,24 @@ function Home({ previews }: IHomeProps) {
 
               return (
                 <div key={a.year} style={{letterSpacing: '0.03em', lineHeight: '1.5em'}}>
-                  <YearHeader>
-                    <Link href={`/album/${a.year}/`}>{a.year}</Link>
-                  </YearHeader>
-                  {preview && preview.keys.length > 0 && (
-                    <PreviewStrip>
-                      {preview.keys.map((key) => (
-                        <Link
-                          key={key}
-                          href={`/album/${a.year}/#photo=${encodeURIComponent(photoSlug(key))}`}
-                          aria-label={`Open ${a.year} at this photo`}
-                        >
-                          <PreviewThumb src={assetUrl(key)} loading="lazy" alt="" />
-                        </Link>
-                      ))}
-                    </PreviewStrip>
-                  )}
+                  <YearRow>
+                    <YearHeader>
+                      <Link href={`/album/${a.year}/`}>{a.year}</Link>
+                    </YearHeader>
+                    {preview && preview.keys.length > 0 && (
+                      <PreviewStrip>
+                        {preview.keys.map((key) => (
+                          <Link
+                            key={key}
+                            href={`/album/${a.year}/#photo=${encodeURIComponent(photoSlug(key))}`}
+                            aria-label={`Open ${a.year} at this photo`}
+                          >
+                            <PreviewThumb src={assetUrl(key)} loading="lazy" alt="" />
+                          </Link>
+                        ))}
+                      </PreviewStrip>
+                    )}
+                  </YearRow>
                   <div style={{ paddingLeft: '12px'}}>
                     {a.description.map((para, index) =>
                       <div key={index}>
@@ -219,6 +221,22 @@ function Home({ previews }: IHomeProps) {
   );
 }
 
+/* Puts the year and its contact sheet on one line, so the strip reads as a caption to the
+   year rather than a band across the page. Stacks back to two rows on a phone, where there
+   isn't room for both. */
+const YearRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin: 24px 0 10px 0;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+`;
+
 const YearHeader = styled.h2`
     text-decoration: none;
     /* text-shadow: 3px -3px #3058c5, 5px -5px #d5b6c5; */
@@ -226,16 +244,24 @@ const YearHeader = styled.h2`
     font-weight: 900;
     letter-spacing: 4px;
     padding-left: 2px;
-    margin-bottom: 8px;
+    margin: 0;
+    /* Keeps the year at full width while the strip absorbs the leftover space. */
+    flex-shrink: 0;
 `;
 
 const PreviewStrip = styled.div`
     display: flex;
     gap: 4px;
-    margin: 0 0 14px 12px;
-    /* Eight thumbnails is more than fits on a phone, so let the strip scroll sideways. */
+    /* min-width: 0 is what lets overflow-x actually kick in inside a flex row -- without it
+       the strip claims its full content width and pushes the year off the page. */
+    flex: 1;
+    min-width: 0;
     overflow-x: auto;
     padding-bottom: 4px;
+
+    @media (max-width: 768px) {
+      margin-left: 12px;
+    }
 `;
 
 const PreviewThumb = styled.img`
