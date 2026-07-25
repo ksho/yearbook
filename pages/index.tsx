@@ -1,7 +1,7 @@
 import '../styles/Home.module.css'
 
-import { useState } from 'react';
-import styled from 'styled-components';
+import { useEffect, useRef, useState } from 'react';
+import styled, { css, keyframes } from 'styled-components';
 
 import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
@@ -126,11 +126,16 @@ const ALBUMS = [
   }
 ];
 
-const PREVIEW_COUNT = 8;
+// Two ways to preview a year in the same footprint: one row of readable thumbnails, or three
+// rows of small ones holding roughly nine times as many shots. Switched from the header.
+const STRIP_COUNT = 8;
+const GRID_COUNT = 72;
 
 interface IYearPreview {
-  // Thumbnail keys, spread across the year, each linking into the album at that photo.
-  keys: string[],
+  // Keys spread across the year, each linking into the album at that photo. Two samples
+  // because the grid holds an order of magnitude more shots in the same space.
+  strip: string[],
+  grid: string[],
 }
 
 interface IHomeProps {
@@ -146,11 +151,14 @@ export async function getServerSideProps() {
 
       try {
         const keys = await listAlbum(year);
-        return [year, { keys: spreadSample(keys, PREVIEW_COUNT) }] as const;
+        return [
+          year,
+          { strip: spreadSample(keys, STRIP_COUNT), grid: spreadSample(keys, GRID_COUNT) },
+        ] as const;
       } catch {
         // A year that fails to list just renders without its strip -- the descriptions,
         // which are the point of this page, still come through.
-        return [year, { keys: [] }] as const;
+        return [year, { strip: [], grid: [] }] as const;
       }
     })
   );
@@ -158,16 +166,76 @@ export async function getServerSideProps() {
   return { props: { previews: Object.fromEntries(entries) } };
 }
 
+const LAYOUTS = {
+  STRIP: 'strip',
+  GRID: 'grid',
+} as const;
+
+type PreviewLayout = (typeof LAYOUTS)[keyof typeof LAYOUTS];
+
+// Matches the light switch next to it, which shows the icon of the mode you are in.
+const LAYOUT_ICONS = {
+  [LAYOUTS.STRIP]: '🎞️',
+  [LAYOUTS.GRID]: '🏁',
+};
+
+interface ITileProps {
+  href: string,
+  src: string,
+  label: string,
+  // Staggers the shimmer across the row so it reads as a sweep rather than one flat pulse.
+  index: number,
+}
+
+// A single preview thumbnail. Shimmers in place until its photo paints over it -- a year's
+// worth of grid tiles is ~70 lazy requests, so they arrive in a trickle rather than at once.
+function PreviewTile({ href, src, label, index }: ITileProps) {
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // A cached photo -- or one the server-rendered markup finished fetching before React
+  // hydrated -- has already fired its load event by the time onLoad is attached, and would
+  // otherwise shimmer forever underneath a perfectly good picture.
+  useEffect(() => {
+    if (imgRef.current?.complete) setLoaded(true);
+  }, []);
+
+  return (
+    <Tile
+      href={href}
+      aria-label={label}
+      $loaded={loaded}
+      style={{ animationDelay: `${(index % 12) * -0.18}s` }}
+    >
+      <Thumb
+        ref={imgRef}
+        src={src}
+        loading="lazy"
+        alt=""
+        onLoad={() => setLoaded(true)}
+        // A photo that 404s should stop shimmering too -- it is done, just empty.
+        onError={() => setLoaded(true)}
+      />
+    </Tile>
+  );
+}
+
 const photoSlug = (key: string) => fileName(key).replace(/\.[^.]+$/, '');
 
 function Home({ previews }: IHomeProps) {
   const [theme, setTheme] = useState(THEMES.DARK.name);
+  const [layout, setLayout] = useState<PreviewLayout>(LAYOUTS.GRID);
 
   const toggleTheme = () => {
     theme == THEMES.LIGHT.name ? setTheme(THEMES.DARK.name) : setTheme(THEMES.LIGHT.name);
   }
 
+  const toggleLayout = () => {
+    setLayout(layout === LAYOUTS.STRIP ? LAYOUTS.GRID : LAYOUTS.STRIP);
+  }
+
   const activeTheme = theme == THEMES.LIGHT.name ? lightTheme : darkTheme
+  const PreviewBox = layout === LAYOUTS.GRID ? PreviewGrid : PreviewStrip
 
   return (
     <ThemeProvider theme={activeTheme}>
@@ -177,7 +245,16 @@ function Home({ previews }: IHomeProps) {
         <MainContent>
           <Header>
             <h1 style={{ margin: '6px'}}>yearbooks</h1>
-            <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
+            <HeaderActions>
+              <LayoutSwitch
+                onClick={toggleLayout}
+                type="button"
+                title={layout === LAYOUTS.GRID ? 'Switch to filmstrip previews' : 'Switch to grid previews'}
+              >
+                {LAYOUT_ICONS[layout]}
+              </LayoutSwitch>
+              <LightSwitch onClick={toggleTheme}>{activeTheme.icon}</LightSwitch>
+            </HeaderActions>
           </Header>
           <div style={{ margin: '6px'}}>
             {ALBUMS.map((a) => {
@@ -189,18 +266,18 @@ function Home({ previews }: IHomeProps) {
                     <YearHeader>
                       <Link href={`/album/${a.year}/`}>{a.year}</Link>
                     </YearHeader>
-                    {preview && preview.keys.length > 0 && (
-                      <PreviewStrip>
-                        {preview.keys.map((key) => (
-                          <Link
+                    {preview && preview[layout].length > 0 && (
+                      <PreviewBox>
+                        {preview[layout].map((key, index) => (
+                          <PreviewTile
                             key={key}
+                            index={index}
+                            src={assetUrl(key)}
                             href={`/album/${a.year}/#photo=${encodeURIComponent(photoSlug(key))}`}
-                            aria-label={`Open ${a.year} at this photo`}
-                          >
-                            <PreviewThumb src={assetUrl(key)} loading="lazy" alt="" />
-                          </Link>
+                            label={`Open ${a.year} at this photo`}
+                          />
                         ))}
-                      </PreviewStrip>
+                      </PreviewBox>
                     )}
                   </YearRow>
                   <div style={{ paddingLeft: '12px'}}>
@@ -237,6 +314,57 @@ const YearRow = styled.div`
     }
 `;
 
+const HeaderActions = styled.div`
+    display: flex;
+    align-items: center;
+`;
+
+/* Sits beside the light switch and reads the same way: the icon shows the mode you are in. */
+const LayoutSwitch = styled.button`
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+    font-size: 30px;
+    line-height: 1;
+    margin: 6px;
+`;
+
+/* Silver and gold, kept faint -- it should read as a placeholder catching the light, not as
+   content. The gradient is three times the tile width and slides across it. */
+const shimmer = keyframes`
+    from { background-position: 200% 0; }
+    to { background-position: -100% 0; }
+`;
+
+const Tile = styled(Link)<{ $loaded: boolean }>`
+    display: block;
+    min-width: 0;
+    border-radius: 2px;
+    overflow: hidden;
+
+    ${({ $loaded }) =>
+      !$loaded &&
+      css`
+        background-image: linear-gradient(
+          100deg,
+          rgba(192, 192, 192, 0.06) 20%,
+          rgba(212, 175, 55, 0.16) 38%,
+          rgba(229, 228, 226, 0.22) 50%,
+          rgba(212, 175, 55, 0.16) 62%,
+          rgba(192, 192, 192, 0.06) 80%
+        );
+        background-size: 300% 100%;
+        animation: ${shimmer} 2.2s linear infinite;
+      `}
+
+    /* Respect a reduced-motion preference -- the placeholder still reads without the sweep. */
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+`;
+
 const YearHeader = styled.h2`
     text-decoration: none;
     /* text-shadow: 3px -3px #3058c5, 5px -5px #d5b6c5; */
@@ -249,38 +377,80 @@ const YearHeader = styled.h2`
     flex-shrink: 0;
 `;
 
-const PreviewStrip = styled.div`
-    display: flex;
-    gap: 4px;
-    /* min-width: 0 is what lets overflow-x actually kick in inside a flex row -- without it
-       the strip claims its full content width and pushes the year off the page. */
-    flex: 1;
+/* Shared by both preview treatments: sized to its contents and pushed to the right edge, so
+   the previews line up against the right margin while the years stay left. min-width: 0 with
+   a shrinkable basis is what lets overflow-x kick in when the thumbnails outgrow the space
+   left beside the year -- otherwise the preview claims its full content width and shoves the
+   year off the page. (justify-content: flex-end would right-align them too, but it puts the
+   overflow off the left edge where it can't be scrolled back to.) */
+const rightAlignedScroller = css`
+    flex: 0 1 auto;
     min-width: 0;
+    margin-left: auto;
     overflow-x: auto;
-    padding-bottom: 4px;
+
+    /* Still scrollable by wheel/trackpad/touch -- just without the bar, which was costing a
+       few pixels of height and reading as chrome on what should look like a strip of film. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
 
     @media (max-width: 768px) {
       margin-left: 12px;
     }
 `;
 
-const PreviewThumb = styled.img`
-    height: 86px;
-    width: 120px;
-    object-fit: cover;
-    border-radius: 3px;
-    display: block;
-    opacity: 0.82;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+/* The containers own the tile geometry -- a tile has to hold its size before its photo
+   arrives, or there'd be nothing for the placeholder shimmer to fill. */
+const PreviewStrip = styled.div`
+    display: flex;
+    gap: 4px;
+    ${rightAlignedScroller}
 
-    &:hover {
-      opacity: 1;
-      transform: translateY(-2px);
+    & > a {
+      flex: 0 0 auto;
+      width: 100px;
+      height: 72px;
     }
 
     @media (max-width: 768px) {
-      height: 70px;
-      width: 94px;
+      & > a {
+        width: 84px;
+        height: 60px;
+      }
+    }
+`;
+
+/* The micro grid: same footprint as the filmstrip, but three rows of much smaller shots, so
+   a year reads as a mosaic of ~70 moments instead of 8 legible ones. Columns flow left to
+   right, so time still runs across the page; each column is three consecutive shots. */
+const PreviewGrid = styled.div`
+    display: grid;
+    grid-template-rows: repeat(3, 24px);
+    grid-auto-flow: column;
+    grid-auto-columns: 34px;
+    gap: 2px;
+    ${rightAlignedScroller}
+
+    @media (max-width: 768px) {
+      grid-template-rows: repeat(3, 20px);
+      grid-auto-columns: 28px;
+    }
+`;
+
+/* Fills whichever tile it lands in, so one thumbnail serves both layouts. */
+const Thumb = styled.img`
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    opacity: 0.82;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 1;
     }
 `;
 
