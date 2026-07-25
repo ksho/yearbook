@@ -7,6 +7,8 @@ import { ThemeProvider } from 'styled-components';
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../ThemeConfig';
 import Link from 'next/link';
 import { Header, LightSwitch, MainContent, MainContentWrapper, TopBar } from '../components/SharedComponents';
+import { assetUrl } from '../AssetConfig';
+import { fileName, listAlbum, spreadSample } from '../lib/photos';
 
 const ALBUMS = [
   {
@@ -124,7 +126,42 @@ const ALBUMS = [
   }
 ];
 
-function Home() {
+const PREVIEW_COUNT = 8;
+
+interface IYearPreview {
+  count: number,
+  // Thumbnail keys, spread across the year, each linking into the album at that photo.
+  keys: string[],
+}
+
+interface IHomeProps {
+  previews: Record<string, IYearPreview>,
+}
+
+// Pulls a handful of thumbnails per year so the index reads as a contact sheet instead of
+// a wall of text. listAlbum() caches per year, so this only hits S3 once every few minutes.
+export async function getServerSideProps() {
+  const entries = await Promise.all(
+    ALBUMS.map(async (album) => {
+      const year = String(album.year);
+
+      try {
+        const keys = await listAlbum(year);
+        return [year, { count: keys.length, keys: spreadSample(keys, PREVIEW_COUNT) }] as const;
+      } catch {
+        // A year that fails to list just renders without its strip -- the descriptions,
+        // which are the point of this page, still come through.
+        return [year, { count: 0, keys: [] }] as const;
+      }
+    })
+  );
+
+  return { props: { previews: Object.fromEntries(entries) } };
+}
+
+const photoSlug = (key: string) => fileName(key).replace(/\.[^.]+$/, '');
+
+function Home({ previews }: IHomeProps) {
   const [theme, setTheme] = useState(THEMES.DARK.name);
 
   const toggleTheme = () => {
@@ -145,11 +182,27 @@ function Home() {
           </Header>
           <div style={{ margin: '6px'}}>
             {ALBUMS.map((a) => {
+              const preview = previews?.[String(a.year)];
+
               return (
                 <div key={a.year} style={{letterSpacing: '0.03em', lineHeight: '1.5em'}}>
                   <YearHeader>
                     <Link href={`/album/${a.year}/`}>{a.year}</Link>
+                    {preview && preview.count > 0 && <YearCount>{preview.count} shots</YearCount>}
                   </YearHeader>
+                  {preview && preview.keys.length > 0 && (
+                    <PreviewStrip>
+                      {preview.keys.map((key) => (
+                        <Link
+                          key={key}
+                          href={`/album/${a.year}/#photo=${encodeURIComponent(photoSlug(key))}`}
+                          aria-label={`Open ${a.year} at this photo`}
+                        >
+                          <PreviewThumb src={assetUrl(key)} loading="lazy" alt="" />
+                        </Link>
+                      ))}
+                    </PreviewStrip>
+                  )}
                   <div style={{ paddingLeft: '12px'}}>
                     {a.description.map((para, index) =>
                       <div key={index}>
@@ -175,6 +228,48 @@ const YearHeader = styled.h2`
     font-weight: 900;
     letter-spacing: 4px;
     padding-left: 2px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+`;
+
+const YearCount = styled.span`
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    opacity: 0.45;
+    text-shadow: none;
+    font-variant-numeric: tabular-nums;
+`;
+
+const PreviewStrip = styled.div`
+    display: flex;
+    gap: 4px;
+    margin: 0 0 14px 12px;
+    /* Eight thumbnails is more than fits on a phone, so let the strip scroll sideways. */
+    overflow-x: auto;
+    padding-bottom: 4px;
+`;
+
+const PreviewThumb = styled.img`
+    height: 86px;
+    width: 120px;
+    object-fit: cover;
+    border-radius: 3px;
+    display: block;
+    opacity: 0.82;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+      height: 70px;
+      width: 94px;
+    }
 `;
 
 export default Home
