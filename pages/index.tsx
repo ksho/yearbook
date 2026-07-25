@@ -129,7 +129,6 @@ const ALBUMS = [
 const PREVIEW_COUNT = 8;
 
 interface IYearPreview {
-  count: number,
   // Thumbnail keys, spread across the year, each linking into the album at that photo.
   keys: string[],
 }
@@ -147,11 +146,11 @@ export async function getServerSideProps() {
 
       try {
         const keys = await listAlbum(year);
-        return [year, { count: keys.length, keys: spreadSample(keys, PREVIEW_COUNT) }] as const;
+        return [year, { keys: spreadSample(keys, PREVIEW_COUNT) }] as const;
       } catch {
         // A year that fails to list just renders without its strip -- the descriptions,
         // which are the point of this page, still come through.
-        return [year, { count: 0, keys: [] }] as const;
+        return [year, { keys: [] }] as const;
       }
     })
   );
@@ -188,7 +187,6 @@ function Home({ previews }: IHomeProps) {
                 <div key={a.year} style={{letterSpacing: '0.03em', lineHeight: '1.5em'}}>
                   <YearHeader>
                     <Link href={`/album/${a.year}/`}>{a.year}</Link>
-                    {preview && preview.count > 0 && <YearCount>{preview.count} shots</YearCount>}
                   </YearHeader>
                   {preview && preview.keys.length > 0 && (
                     <PreviewStrip>
@@ -228,19 +226,7 @@ const YearHeader = styled.h2`
     font-weight: 900;
     letter-spacing: 4px;
     padding-left: 2px;
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
     margin-bottom: 8px;
-`;
-
-const YearCount = styled.span`
-    font-size: 11px;
-    font-weight: 400;
-    letter-spacing: 0.08em;
-    opacity: 0.45;
-    text-shadow: none;
-    font-variant-numeric: tabular-nums;
 `;
 
 const PreviewStrip = styled.div`
