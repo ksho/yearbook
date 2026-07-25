@@ -412,6 +412,12 @@ const rightAlignedScroller = css`
 
     @media (max-width: 768px) {
       margin-left: 12px;
+      /* The row becomes a column here, and its align-items: flex-start sizes children to
+         their content on the cross axis -- so the previews claimed their full ~720px and ran
+         off the side of the phone, with overflow-x never given a constraint to act on.
+         Stretching to the column's width supplies one. */
+      align-self: stretch;
+      max-width: 100%;
     }
 `;
 
