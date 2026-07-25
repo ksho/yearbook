@@ -76,11 +76,38 @@ for i in *.MOV; do ffmpeg -ss 00:00:00.000 -i "$i" -pix_fmt rgb24 -r 12 -vf 'sca
 
 ### S3 Integration
 
-The app fetches image lists from S3 using AWS SDK in `getServerSideProps`:
+The app fetches image lists from S3 using AWS SDK v3 in `getServerSideProps`:
 - Requires environment variables: `AWS_S3_ACCESS_KEY`, `AWS_S3_SECRET`
 - Bucket: `yearbook-assets`
-- Image URLs follow pattern: `https://yearbook-assets.s3.amazonaws.com/{year}/{size}/{filename}`
 - Supported formats: jpg, gif, webp
+- Listing is paginated via `paginateListObjectsV2` -- a bare `ListObjectsV2` silently caps at 1000 keys, and the larger years are already past 700
+
+### Asset delivery (CloudFront)
+
+Images are **read** through CloudFront, not directly from S3. The bucket remains public, so direct S3 URLs still work as a fallback.
+
+- Distribution: `E2AKQTW7LH879C` -> `d2nk87d9flz1jw.cloudfront.net`
+- Origin: `yearbook-assets.s3.us-east-1.amazonaws.com`
+- Image URLs follow pattern: `https://d2nk87d9flz1jw.cloudfront.net/{year}/{size}/{filename}`
+- Built via `assetUrl()` in `AssetConfig.ts` -- the single place the host is defined. Override with `NEXT_PUBLIC_ASSET_HOST` (e.g. set it to `yearbook-assets.s3.amazonaws.com` to bypass the CDN without a code change).
+
+The S3 objects carry **no** `Cache-Control` of their own. CloudFront attaches one at the edge via response headers policy `05df1ff4-a688-4ef8-b6bc-88d7583ad677` (`yearbook-assets-long-cache`), which sets:
+
+```
+Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+```
+
+Deliberately **not** `immutable`, and deliberately a day rather than a year: old shots get re-edited and re-uploaded in place, especially around December/January, so updates have to be able to propagate. A viewer sees a re-edited photo within a day on their own, and `stale-while-revalidate` means they get the cached copy instantly while the new one fetches in the background.
+
+This lines up with the edge, which also holds one day -- because S3 sends no `Cache-Control`, CloudFront falls back to the `CachingOptimized` cache policy's 86400s `DefaultTTL`.
+
+To push an update out immediately rather than waiting a day, invalidate the edge:
+
+```bash
+aws cloudfront create-invalidation --distribution-id E2AKQTW7LH879C --paths "/2025/2000px/*"
+```
+
+Adding *new* files needs no invalidation -- they were never cached.
 
 ### Styling
 

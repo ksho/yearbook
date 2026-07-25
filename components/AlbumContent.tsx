@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 
 import styled from 'styled-components';
+import { assetUrl } from '../AssetConfig';
 // import LazyImage from './LazyImage';
 
 type TParams =  { id: string };
@@ -64,12 +65,12 @@ export default class AlbumContent extends Component<IOwnProps, IOwnState> {
   getImageUrlBySize(path: string, size: string) {
     // Experimenting with future full video support
     // if (size === '3000px' && path.indexOf('.gif') > 0) {
-    //   return `https://yearbook-assets.s3.amazonaws.com/${path.replace('.gif', '.mov')}`;
+    //   return assetUrl(path.replace('.gif', '.mov'));
     // } else {
-    //   return `https://yearbook-assets.s3.amazonaws.com/${path.replace('200px', size)}`;
+    //   return assetUrl(path.replace('200px', size));
     // }
 
-    return `https://yearbook-assets.s3.amazonaws.com/${path.replace(IMAGE_SIZES.SMALL, size)}`;
+    return assetUrl(path.replace(IMAGE_SIZES.SMALL, size));
   }
 
   isBottom(el: HTMLElement) {
