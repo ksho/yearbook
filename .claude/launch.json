@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "yearbook-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "yearbook-demo",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "NEXT_DIST_DIR=.next-demo npx next start"],
+      "port": 3100,
+      "autoPort": true
+    }
+  ]
+}

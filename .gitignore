@@ -10,6 +10,9 @@
 
 # next.js
 /.next/
+# Alternate build dir for a second concurrent `next dev`/`next start` -- see NEXT_DIST_DIR
+# in next.config.js.
+/.next-*/
 /out/
 
 # production

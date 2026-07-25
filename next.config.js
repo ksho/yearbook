@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
+  // Two `next dev` instances in one checkout fight over the .next/dev lock. Setting
+  // NEXT_DIST_DIR gives a second instance its own build dir; unset, nothing changes.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   compiler: {
     // Replaces the babel-plugin-styled-components config that used to live in .babelrc.
     // Keeping it here lets Next use SWC/Turbopack instead of falling back to Babel.
