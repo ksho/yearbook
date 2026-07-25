@@ -179,19 +179,29 @@ const LAYOUT_ICONS = {
   [LAYOUTS.GRID]: '🏁',
 };
 
+// Intrinsic sizes for the <img> tags. CSS sizes the tiles for real -- these are so the
+// browser knows the shape before the photo lands, and so an unstyled render degrades to
+// small images rather than full-bleed ones.
+const TILE_SIZES = {
+  [LAYOUTS.STRIP]: { width: 100, height: 72 },
+  [LAYOUTS.GRID]: { width: 34, height: 24 },
+};
+
 interface ITileProps {
   href: string,
   src: string,
   label: string,
+  layout: PreviewLayout,
   // Staggers the shimmer across the row so it reads as a sweep rather than one flat pulse.
   index: number,
 }
 
 // A single preview thumbnail. Shimmers in place until its photo paints over it -- a year's
 // worth of grid tiles is ~70 lazy requests, so they arrive in a trickle rather than at once.
-function PreviewTile({ href, src, label, index }: ITileProps) {
+function PreviewTile({ href, src, label, layout, index }: ITileProps) {
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+  const size = TILE_SIZES[layout];
 
   // A cached photo -- or one the server-rendered markup finished fetching before React
   // hydrated -- has already fired its load event by the time onLoad is attached, and would
@@ -210,6 +220,8 @@ function PreviewTile({ href, src, label, index }: ITileProps) {
       <Thumb
         ref={imgRef}
         src={src}
+        width={size.width}
+        height={size.height}
         loading="lazy"
         alt=""
         onLoad={() => setLoaded(true)}
@@ -272,6 +284,7 @@ function Home({ previews }: IHomeProps) {
                           <PreviewTile
                             key={key}
                             index={index}
+                            layout={layout}
                             src={assetUrl(key)}
                             href={`/album/${a.year}/#photo=${encodeURIComponent(photoSlug(key))}`}
                             label={`Open ${a.year} at this photo`}
