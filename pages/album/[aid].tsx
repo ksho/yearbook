@@ -2,7 +2,7 @@ import '../../styles/Home.module.css'
 
 import ExifReader from 'exifreader';
 
-import aws from 'aws-sdk';
+import { S3Client, paginateListObjectsV2 } from '@aws-sdk/client-s3';
 import AlbumContent from '../../components/AlbumContent';
 import { useState } from 'react';
 
@@ -14,57 +14,41 @@ import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
 const SUPPORTED_FILES = ['jpg', 'gif', 'webp'];
+const BUCKET = 'yearbook-assets';
+
+const s3 = new S3Client({
+  region: 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_S3_ACCESS_KEY as string,
+    secretAccessKey: process.env.AWS_S3_SECRET as string,
+  },
+});
+
+// Paginates past the 1000-key cap that a bare ListObjectsV2 silently truncates at.
+// Only includes keys ending in SUPPORTED_FILES -- filters out directories and any
+// weird files like .DS_Store.
+async function listKeys(prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+
+  for await (const page of paginateListObjectsV2({ client: s3 }, { Bucket: BUCKET, Prefix: prefix })) {
+    for (const { Key } of page.Contents ?? []) {
+      const lower = Key?.toLowerCase();
+      if (Key && lower && SUPPORTED_FILES.some((ext) => lower.endsWith(ext))) {
+        keys.push(Key);
+      }
+    }
+  }
+
+  return keys;
+}
 
 export async function getServerSideProps(context: any) {
-  aws.config.update({
-    accessKeyId: process.env.AWS_S3_ACCESS_KEY,
-    secretAccessKey: process.env.AWS_S3_SECRET,
-    region: 'us-east-1',
-    signatureVersion: 'v4',
-  });
-
-  const s3 = new aws.S3();
   const aid = context.query.aid
 
-  const photoParams = {
-    Bucket: 'yearbook-assets',
-    Prefix: `${aid}/200px`,
-  };
-
-  const videoParams = {
-    Bucket: 'yearbook-assets',
-    Prefix: `${aid}/video/webp`,
-  };
-
-  // Get photos
-  const photoResult: (string | undefined)[] = await new Promise((resolve, reject) => {
-    s3.listObjectsV2(photoParams, (err, data) => {
-      if (err) reject(err);
-      
-      // Only include keys ending in SUPPORTED_FILES -- filters out directories and any weird files like .DS_Store
-      const keys = data.Contents?.
-        map((c) => c.Key).
-        // change includes to endswith?
-        filter(k => SUPPORTED_FILES.some((ext) => k?.toLowerCase().includes(ext))) || []
-
-      resolve(keys);
-    });
-  });
-
-  // Get videos
-  const videoResult: (string | undefined)[] = await new Promise((resolve, reject) => {
-    s3.listObjectsV2(videoParams, (err, data) => {
-      if (err) reject(err);
-
-      // Only include keys ending in SUPPORTED_FILES -- filters out directories and any weird files like .DS_Store
-      const keys = data.Contents?.
-        map((c) => c.Key).
-        // change includes to endswith?
-        filter(k => SUPPORTED_FILES.some((ext) => k?.toLowerCase().includes(ext))) || []
-
-      resolve(keys);
-    });
-  });
+  const [photoResult, videoResult] = await Promise.all([
+    listKeys(`${aid}/200px`),
+    listKeys(`${aid}/video/webp`),
+  ]);
 
   // Concat the photos and videos and custom sort
   // TODO: faster to do a smarter merge
