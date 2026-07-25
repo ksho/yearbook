@@ -8,6 +8,7 @@ import { useState } from 'react';
 
 import { ThemeProvider } from "styled-components";
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../../ThemeConfig';
+import { assetUrl } from '../../AssetConfig';
 import Link from 'next/link';
 import { TopBar, MainContentWrapper, MainContent, Header, LightSwitch } from '../../components/SharedComponents';
 import Lightbox from "yet-another-react-lightbox";
@@ -122,7 +123,7 @@ const Album = (data: any) => {
             close={() => setLightboxOpen(false)}
             index={lightboxIndex}
             slides={images.map((path: string) => ({
-              src: `https://yearbook-assets.s3.amazonaws.com/${path.replace('200px', '3000px')}`
+              src: assetUrl(path.replace('200px', '3000px'))
             }))}
           />
         </MainContent>

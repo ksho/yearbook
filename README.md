@@ -3,6 +3,7 @@ This application displays the photos for my annual yearbook project.
 # Some vitals:
 - Built with [Next.js](https://nextjs.org/)
 - Media stored in S3 in multiple sizes -- allows the best size to be used depending on the case (e.g. 1000px for the main grid, 3000px for the lightbox)
+- Served through CloudFront (`d2nk87d9flz1jw.cloudfront.net`) so images are edge-cached rather than pulled from us-east-1 on every view
 - Images are loaded in batches as the user scrolls to keep initial load time fast.
 - Hosted on Vercel
 
@@ -15,6 +16,9 @@ This application displays the photos for my annual yearbook project.
 ## Sync assets to S3
 - `cd $LOCAL_PHOTO_DIRECTORY`
 - `aws s3 sync . s3://yearbook-assets/ --delete --acl public-read --profile default --exclude "*" --include "*.jpg" --include "*.webp" --include "*.gif" --size-only`
+
+New files need no CloudFront invalidation. If you *overwrite* an existing key, invalidate it -- and note that browsers which already cached it will keep the old copy for up to a year, so uploading under a new filename is safer:
+- `aws cloudfront create-invalidation --distribution-id E2AKQTW7LH879C --paths "/2025/2000px/*"`
 
 ## Converting jpgs --> webp
 `for f in *.jpg; do cwebp -q 85 -m 6 -af "$f" -o "${f%.jpg}.webp"; done`

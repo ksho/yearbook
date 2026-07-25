@@ -10,6 +10,13 @@ module.exports = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'd2nk87d9flz1jw.cloudfront.net',
+        port: '',
+        pathname: '/**',
+      },
+      // Kept so NEXT_PUBLIC_ASSET_HOST can fall back to the bucket without a code change.
+      {
+        protocol: 'https',
         hostname: 'yearbook-assets.s3.amazonaws.com',
         port: '',
         pathname: '/**',
