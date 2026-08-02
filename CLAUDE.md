@@ -55,8 +55,9 @@ Unauthenticated requests get a 307 to `/enter?next=<original path>`, so deep lin
 | `SITE_PASSPHRASE_HASH` | scrypt hash of the phrase, from `npm run hash-passphrase` |
 | `SESSION_SECRET` | HMAC key, `openssl rand -hex 32` |
 | `SESSION_EPOCH` | integer, starts at `1` |
+| `SITE_GATE_DISABLED` | kill switch, normally unset -- see below |
 
-Set all three in Vercel for **Production, Preview, and Development**. Preview deployments are public URLs; without the vars set there, `proxy.ts` returns 503 rather than failing open. None of them may be `NEXT_PUBLIC_*`.
+Set the first three in Vercel for **Production, Preview, and Development**. Preview deployments are public URLs; without the vars set there, `proxy.ts` returns 503 rather than failing open. None of them may be `NEXT_PUBLIC_*`.
 
 Two independent levers, both requiring a redeploy (Vercel env changes don't hot-apply):
 
@@ -64,6 +65,16 @@ Two independent levers, both requiring a redeploy (Vercel env changes don't hot-
 - **Log everyone out** -- increment `SESSION_EPOCH`. The phrase is unchanged.
 
 The hash uses `:` as its separator, not the `$` that PHC-style hashes conventionally use. This is not cosmetic: Next runs `.env` files through dotenv-expand, which reads `$k97sfhr...` as a variable reference and replaces it with nothing, so a `$`-separated hash arrives truncated and every correct passphrase is rejected.
+
+### The kill switch
+
+`SITE_GATE_DISABLED=true` turns the gate off entirely: `proxy.ts` passes every request through, and `/enter` redirects to the site rather than showing a prompt guarding nothing. It exists so that a bug in the gate, or a bad value in one of the vars above, doesn't mean a revert-and-redeploy to get the family back in.
+
+Only the exact word `true` disables it, case- and whitespace-insensitive. `1`, `yes`, `on`, `false`, an empty string, and absence all leave the gate **on**, so nothing accidental opens the site. It is checked before the `SESSION_SECRET` test, deliberately -- the switch has to work when the thing that broke is the configuration it sits above.
+
+**On Vercel this is not instant.** Environment variable changes only take effect on a new deployment, so flipping this still costs a redeploy. If the goal is purely to stop the bleeding, **Instant Rollback** to the previous deployment is faster -- seconds, no rebuild. The switch is the better tool when you want to keep the current deployment and only turn the gate off, and it does take effect immediately in local dev.
+
+To check which state production is in: a `307` from `/` means the gate is on, a `200` means it is off.
 
 ### Why there is no rate limiter
 

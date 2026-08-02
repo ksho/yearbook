@@ -63,6 +63,21 @@ function hmacKey(secret: string): Promise<CryptoKey> {
   ])
 }
 
+// The kill switch. If the gate itself turns out to be broken -- a bad hash in an env var, a
+// bug in here, anything that locks the family out -- this reopens the site without reverting
+// code.
+//
+// Two deliberate properties. It fails safe: absence, an empty string, a typo, 'yes', '1' all
+// leave the gate ON, and only the exact word 'true' turns it off, so nothing accidental can
+// expose the site. And it is short and obvious to type, because the moment you need it is the
+// moment you are least inclined to look up the spelling.
+//
+// Read fresh on each call rather than captured at module load, so a `next dev` picking up an
+// edited .env.local takes effect without a restart.
+export function gateDisabled(): boolean {
+  return process.env.SITE_GATE_DISABLED?.trim().toLowerCase() === 'true'
+}
+
 export function sessionEpoch(): number {
   const parsed = Number.parseInt(process.env.SESSION_EPOCH ?? '1', 10)
   return Number.isFinite(parsed) ? parsed : 1

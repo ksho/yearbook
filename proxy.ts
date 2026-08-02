@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-import { SESSION_COOKIE, sessionEpoch, verifySession } from './lib/gate'
+import { SESSION_COOKIE, gateDisabled, sessionEpoch, verifySession } from './lib/gate'
 
 // The single choke point for the passphrase gate. Everything the matcher covers -- the home
 // page, every album, every API route -- is unreachable without a valid session cookie.
@@ -26,12 +26,26 @@ export const config = {
   ],
 }
 
+// Announced once per instance rather than per request, so the reason the site is wide open is
+// sitting in the Vercel logs without paying to log it on every hit.
+if (gateDisabled()) {
+  console.warn('SITE_GATE_DISABLED=true -- the passphrase gate is OFF and this site is public.')
+}
+
 export default async function proxy(request: NextRequest) {
+  // Checked before anything else, deliberately. The kill switch has to work even when the
+  // thing that broke is the configuration below it -- a truncated hash or a missing secret is
+  // exactly the sort of failure you would be reaching for this to escape.
+  if (gateDisabled()) {
+    return NextResponse.next()
+  }
+
   const secret = process.env.SESSION_SECRET
 
   // Failing open here would silently un-gate the entire site the first time someone forgets
   // an env var on a fresh Vercel environment, and nothing about the page would look wrong.
-  // Fail closed and make it obvious instead.
+  // Fail closed and make it obvious instead -- turning the gate off is what the kill switch
+  // above is for, and it says so out loud.
   if (!secret) {
     return new NextResponse('The gate is misconfigured.', { status: 503 })
   }

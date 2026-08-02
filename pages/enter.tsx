@@ -7,7 +7,7 @@ import styled, { ThemeProvider, css, keyframes } from 'styled-components'
 
 import { darkTheme, GlobalStyles } from '../ThemeConfig'
 import { TopBar } from '../components/SharedComponents'
-import { safeNextPath } from '../lib/gate'
+import { gateDisabled, safeNextPath } from '../lib/gate'
 
 interface IEnterProps {
   nextPath: string
@@ -17,7 +17,15 @@ interface IEnterProps {
 // before the first paint -- this page has no other data to fetch, and an un-hydrated
 // router.query would be empty on the first render.
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-  return { props: { nextPath: safeNextPath(context.query.next) } }
+  const destination = safeNextPath(context.query.next)
+
+  // With the gate switched off this page is a dead end -- a passphrase prompt guarding nothing.
+  // Anyone sitting on it, or holding a link to it, gets sent on to where they were going.
+  if (gateDisabled()) {
+    return { redirect: { destination, permanent: false } }
+  }
+
+  return { props: { nextPath: destination } }
 }
 
 // Purely a courtesy to whoever is fumbling the phrase from memory -- it slows the typing, not
