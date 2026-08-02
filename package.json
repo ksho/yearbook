@@ -4,8 +4,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "export": "next build && next export",
     "start": "next start",
+    "hash-passphrase": "node scripts/hash-passphrase.mjs",
     "lint": "eslint ."
   },
   "dependencies": {
