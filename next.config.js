@@ -9,6 +9,17 @@ module.exports = {
     // Keeping it here lets Next use SWC/Turbopack instead of falling back to Babel.
     styledComponents: true,
   },
+  // Belt and braces alongside public/robots.txt: robots.txt asks a crawler not to fetch, this
+  // tells anything that fetched anyway not to index. Applies to the gate page too, which is
+  // the only page a crawler can actually reach.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }],
+      },
+    ]
+  },
   images: {
     remotePatterns: [
       {

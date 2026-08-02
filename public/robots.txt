@@ -1,0 +1,5 @@
+# The yearbook is passphrase-gated -- there is nothing here for a crawler to index.
+# Note that this stops future crawling only; anything already in a search index has to be
+# removed through that engine's own tooling (see CLAUDE.md).
+User-agent: *
+Disallow: /
