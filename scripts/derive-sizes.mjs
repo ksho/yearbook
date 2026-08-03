@@ -19,11 +19,45 @@
 // costs one photo's worth of work.
 
 import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { basename, extname, join, resolve } from 'node:path'
-import { cpus } from 'node:os'
+import { availableParallelism } from 'node:os'
 
 const require = createRequire(import.meta.url)
+
+// Performance cores only. On an M4 Max availableParallelism() reports 16, but four of
+// those are efficiency cores at roughly a third of the speed. Measured on 24 AVIF encodes
+// at 1600px: pool 4 -> 0.83 img/s, 8 -> 1.24, 12 -> 1.55, 16 -> 1.47, 20 -> 1.58. Twelve
+// is the knee, and it is exactly the performance-core count; past it the extra threads
+// only add heat, which on a laptop costs throughput rather than buying it.
+function performanceCores() {
+  if (process.platform !== 'darwin') return availableParallelism()
+  try {
+    const n = Number(execFileSync('sysctl', ['-n', 'hw.perflevel0.logicalcpu'], { encoding: 'utf8' }).trim())
+    return Number.isInteger(n) && n > 0 ? n : availableParallelism()
+  } catch {
+    return availableParallelism()
+  }
+}
+
+const DEFAULT_CONCURRENCY = performanceCores()
+
+// This has to happen before the first task hits libuv's thread pool, because the pool is
+// sized once, lazily, on first use and never resized. Module scope is early enough --
+// importing sharp does not touch it.
+//
+// Without this the default pool is FOUR threads, and since sharp dispatches every
+// operation onto it, the worker pool below can have any number of photos in flight and
+// still only ever run four at once. Measured on this machine: 4.0x parallelism against a
+// 16-core chip, half the CPU sitting idle, for the whole of the first 2025 backfill.
+// Setting it lifted the same work from 4.0x to 11.3x.
+const requestedConcurrency = process.argv.indexOf('--concurrency')
+const concurrencyArg = requestedConcurrency > -1 ? Number(process.argv[requestedConcurrency + 1]) : NaN
+process.env.UV_THREADPOOL_SIZE ??= String(
+  Number.isInteger(concurrencyArg) && concurrencyArg > 0 ? concurrencyArg : DEFAULT_CONCURRENCY
+)
+
 const sharp = require('sharp')
 const ExifReader = require('exifreader')
 
@@ -65,12 +99,24 @@ const FORMATS = ['webp', 'avif']
 // At these settings both formats land above what production looks like now, and the AVIF
 // is still 21% lighter than the file it replaces.
 //
-// AVIF effort is 4 rather than the maximum 9 on purpose. Effort 6 came out 1% LARGER
-// than effort 4 while taking 2.6x as long (1618ms vs 614ms) -- past 4 the encoder is
-// spending time on search that this kind of content doesn't reward.
+// AVIF effort is 3, well below the maximum of 9, and that is the single largest lever on
+// how long a backfill takes -- AVIF is roughly 80% of the encode work. Measured over five
+// photos at q60, against effort 4:
+//
+//          time    size    ssimulacra2
+//    800px  -66%     +0%      -0.88
+//   1600px  -75%     +1%      -0.65
+//   3000px  -71%     +3%      -0.09
+//
+// Two thirds to three quarters of the time for one to three percent of the bytes and a
+// sub-point score change, on a scale where meaningful steps are about five points.
+//
+// Effort 2 is faster still but the curve has turned by then: +7% size at 3000px and -1.04
+// score at 800px. And going the other way is pure waste -- effort 5 costs 28-39% more time
+// than 4 for identical size and score, and effort 6 measured LARGER than effort 4.
 const ENCODE = {
   webp: { quality: 80, effort: 6, smartSubsample: true },
-  avif: { quality: 60, effort: 4, chromaSubsampling: '4:2:0' },
+  avif: { quality: 60, effort: 3, chromaSubsampling: '4:2:0' },
 }
 
 // AVIF carries a fixed container overhead that stops paying for itself on thumbnails.
@@ -116,7 +162,7 @@ function parseArgs(argv) {
     year: null,
     force: false,
     dryRun: false,
-    concurrency: cpus().length,
+    concurrency: DEFAULT_CONCURRENCY,
     formats: FORMATS,
     widths: WIDTHS,
     exif: 'all',
@@ -151,7 +197,7 @@ function parseArgs(argv) {
     console.error('                           none   -- strip it')
     console.error('  --widths 400,800       override the size ladder')
     console.error('  --formats webp         override output formats (webp,avif)')
-    console.error('  --concurrency N        photos in flight at once (default: one per core)')
+    console.error('  --concurrency N        photos in flight at once (default: one per performance core)')
     console.error('  --posters              also emit a still first frame for animated sources')
     console.error('  --force                rebuild outputs that already exist')
     console.error('  --dry-run              report what would be written, write nothing')
@@ -407,6 +453,8 @@ async function processPhoto(opts, sourceDir, outDir, entry) {
 
   const tiers = []
   const probeFormats = []
+  // Filled from whichever encode ran first for each tier -- see the note where it is used.
+  const measured = new Map()
   let written = 0
   let bytes = 0
 
@@ -430,6 +478,7 @@ async function processPhoto(opts, sourceDir, outDir, entry) {
     })
     written++
     bytes += result.size
+    if (!firstFrameOnly && !measured.has(width)) measured.set(width, result.width)
   }
 
   for (const width of opts.widths) {
@@ -460,15 +509,22 @@ async function processPhoto(opts, sourceDir, outDir, entry) {
     }
   }
 
-  // The actual intrinsic width of each tier, read back rather than derived. Tiers bound
-  // the longest edge, so a portrait's 2000px file is 1500 wide -- and libvips rounds
-  // half-to-even when it scales, so 200 x 1206/2144 lands on 112 where Math.round would
-  // predict 113. srcset's w descriptor has to be the real number, so measure it.
+  // The real intrinsic width of each tier, which is what a srcset w descriptor has to
+  // carry. It cannot be derived: tiers bound the longest edge, so a portrait's 2000px file
+  // is 1500 wide, and libvips rounds half-to-even when it scales -- 200 x 1206/2144 lands
+  // on 112 where Math.round predicts 113.
+  //
+  // toFile() already reports it, so the common path costs nothing. Only a tier that was
+  // skipped as already-fresh needs reading off disk, which on a --force run never happens.
   const widths = []
   if (!opts.dryRun) {
     for (const [i, width] of tiers.entries()) {
-      const probe = join(outDir, `${width}px`, `${name}.${probeFormats[i]}`)
-      widths.push((await sharp(probe).metadata()).width)
+      if (measured.has(width)) {
+        widths.push(measured.get(width))
+        continue
+      }
+      const existing = join(outDir, `${width}px`, `${name}.${probeFormats[i]}`)
+      widths.push((await sharp(existing).metadata()).width)
     }
   }
 
