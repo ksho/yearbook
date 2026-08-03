@@ -226,6 +226,70 @@ function cameraExif(info) {
   return { IFD0: ifd0, IFD2: ifd2 }
 }
 
+// Strips IFD1 -- the embedded thumbnail preview -- out of a JPEG's Exif APP1 segment by
+// zeroing IFD0's "next IFD" pointer. Everything worth keeping (IFD0, ExifIFD, GPS,
+// MakerNote) hangs off IFD0 and is untouched; verified by dumping the output tags.
+//
+// This is not a micro-optimisation. Every original exported from Lightroom carries one,
+// averaging 17 KB, and neither keepExif() nor withExif() drops it -- libvips copies IFD1
+// through regardless. Left in, that preview is duplicated into all 13 derivatives of every
+// photo: ~127 MB for 2025 alone, and on a 200px tile it outweighs the actual image 4:1.
+//
+// Returns the buffer unchanged for anything that isn't a JPEG with an Exif segment.
+function dropExifThumbnail(buffer) {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) return buffer
+
+  let i = 2
+  while (i < buffer.length - 4) {
+    if (buffer[i] !== 0xff) return buffer
+
+    const marker = buffer[i + 1]
+    // Start of scan -- image data from here on, no more metadata segments.
+    if (marker === 0xda) return buffer
+
+    const len = buffer.readUInt16BE(i + 2)
+    if (len < 2 || i + 2 + len > buffer.length) return buffer
+
+    if (marker === 0xe1 && buffer.toString('latin1', i + 4, i + 10) === 'Exif\0\0') {
+      const tiff = i + 10
+      const byteOrder = buffer.toString('latin1', tiff, tiff + 2)
+      if (byteOrder !== 'II' && byteOrder !== 'MM') return buffer
+
+      const le = byteOrder === 'II'
+      const readU32 = (o) => (le ? buffer.readUInt32LE(o) : buffer.readUInt32BE(o))
+      const readU16 = (o) => (le ? buffer.readUInt16LE(o) : buffer.readUInt16BE(o))
+
+      const ifd0 = tiff + readU32(tiff + 4)
+      if (ifd0 + 2 > buffer.length) return buffer
+
+      // 2-byte entry count, then that many 12-byte entries, then the 4-byte IFD1 pointer.
+      const nextIfdPointer = ifd0 + 2 + readU16(ifd0) * 12
+      if (nextIfdPointer + 4 > i + 2 + len) return buffer
+
+      const patched = Buffer.from(buffer)
+      if (le) patched.writeUInt32LE(0, nextIfdPointer)
+      else patched.writeUInt32BE(0, nextIfdPointer)
+      return patched
+    }
+
+    i += 2 + len
+  }
+
+  return buffer
+}
+
+// True when the embedded profile is plain sRGB, which is the one case where dropping it
+// changes nothing: an untagged image is interpreted as sRGB by every browser. Worth doing
+// because the profile Lightroom embeds is 3144 bytes, on every derivative of every photo.
+//
+// Anything else -- Display P3, Adobe RGB, ProPhoto -- has to keep its profile or the
+// colours shift, so the check is deliberately positive-match rather than a denylist.
+function isPlainSrgb(icc) {
+  if (!icc) return false
+  const text = icc.toString('latin1')
+  return text.includes('sRGB IEC61966-2.1') || text.includes('sRGB built-in')
+}
+
 // --- derivation -----------------------------------------------------------------
 
 // Each tier is resized from the original rather than cascaded down from the tier above
@@ -233,7 +297,7 @@ function cameraExif(info) {
 // quality over encode time. The cost is smaller than it looks: libvips shrink-on-load
 // decodes JPEGs straight at 1/2, 1/4 or 1/8 scale, so the small tiers never pay for a
 // full-resolution decode.
-async function deriveOne({ buffer, width, format, outPath, animated, exifMode, exifDict, firstFrameOnly }) {
+async function deriveOne({ buffer, width, format, outPath, animated, exifMode, exifDict, firstFrameOnly, keepIcc }) {
   let pipeline = sharp(buffer, {
     limitInputPixels: LIMIT_INPUT_PIXELS,
     // Without this an animated source is silently flattened to its first frame --
@@ -249,17 +313,15 @@ async function deriveOne({ buffer, width, format, outPath, animated, exifMode, e
 
   if (width <= SHARPEN_AT_OR_BELOW && !animated) pipeline = pipeline.sharpen(SHARPEN)
 
-  // keepIccProfile() is doing real work here, and the alternatives are both wrong.
+  // When the profile has to be carried, keepIccProfile() is the only correct way to do
+  // it, and both alternatives are wrong. Cameras that shoot Display P3 hand sharp wide
+  // gamut pixels; sharp's default strips the profile and leaves those values behind,
+  // which browsers then read as sRGB and the colour shifts. withIccProfile('srgb') is
+  // worse: measured on this setup it does NOT convert the pixels either, it just
+  // relabels them, so the same wrong colours ship with a tag asserting they're right.
   //
-  // iPhones shoot Display P3. sharp's default is to strip the profile and leave the
-  // pixel values alone, which hands a browser P3 numbers with no tag -- they get read
-  // as sRGB and the colour shifts. withIccProfile('srgb') is worse: measured on this
-  // setup it does NOT convert the pixels either, it just relabels them sRGB, so the
-  // same wrong colours ship with a tag asserting they're right.
-  //
-  // keepIccProfile() is the only one that leaves pixels and tag consistent, for P3 and
-  // sRGB sources alike.
-  pipeline = pipeline.keepIccProfile()
+  // keepIcc is false only when the source was already plain sRGB -- see isPlainSrgb().
+  if (keepIcc) pipeline = pipeline.keepIccProfile()
 
   // Note that keepExif() carries GPS coordinates into every derivative, and these
   // objects are served from a public CloudFront distribution that the passphrase gate
@@ -270,11 +332,15 @@ async function deriveOne({ buffer, width, format, outPath, animated, exifMode, e
   return pipeline[format](ENCODE[format]).toFile(outPath)
 }
 
-async function readSource(path) {
+async function readSource(path, exifMode) {
   // Read once and hand the same buffer to every tier. Seven tiers x two formats is
   // fourteen decodes of this photo either way, but only one trip to disk.
-  const buffer = await readFile(path)
-  const meta = await sharp(buffer, { limitInputPixels: LIMIT_INPUT_PIXELS }).metadata()
+  const raw = await readFile(path)
+  const meta = await sharp(raw, { limitInputPixels: LIMIT_INPUT_PIXELS }).metadata()
+
+  // Patch the thumbnail out once, here, rather than in each of the thirteen derivations.
+  // Pointless when the EXIF is being dropped wholesale anyway.
+  const buffer = exifMode === 'none' ? raw : dropExifThumbnail(raw)
 
   // metadata() reports the stored dimensions, before EXIF rotation is applied.
   // Orientation values 5-8 are the 90-degree ones, where displayed width is stored height.
@@ -284,6 +350,7 @@ async function readSource(path) {
     width: swapped ? meta.height : meta.width,
     height: swapped ? meta.width : meta.height,
     pages: meta.pages ?? 1,
+    keepIcc: !isPlainSrgb(meta.icc),
   }
 }
 
@@ -300,7 +367,7 @@ async function processPhoto(opts, sourceDir, outDir, entry) {
   const sourcePath = join(sourceDir, entry)
   const name = basename(entry, extname(entry))
   const sourceStat = await stat(sourcePath)
-  const source = await readSource(sourcePath)
+  const source = await readSource(sourcePath, opts.exif)
 
   const animated = source.pages > 1
   const info = animated ? null : readMetadata(source.buffer)
@@ -329,6 +396,7 @@ async function processPhoto(opts, sourceDir, outDir, entry) {
       exifMode: opts.exif,
       exifDict,
       firstFrameOnly,
+      keepIcc: source.keepIcc,
     })
     written++
     bytes += result.size
