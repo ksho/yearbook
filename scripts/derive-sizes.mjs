@@ -41,19 +41,36 @@ const WIDTHS = [200, 400, 800, 1200, 1600, 2000, 3000]
 // getImageUrlBySize() keeps working unchanged for the .webp fallback.
 const FORMATS = ['webp', 'avif']
 
-// Measured on this machine (sharp 0.35.3 / libvips 8.18.3) against a 1200x900 test
-// image: webp q80 -> 238 KB, avif q50 -> 113 KB. AVIF is worth the extra encode time.
+// Quality numbers are NOT comparable between these two codecs, or to the JPEG quality in
+// the Lightroom export presets. The only way to set them is to measure, so these come
+// from a ssimulacra2 sweep over four photos spanning the size range of the 2025 album,
+// scored at 2000px against the live CloudFront files as a baseline:
+//
+//   PROD (live)   68.56   408 KB      <- what the album serves today
+//   webp q75      68.09   371 KB       -9%   matches prod
+//   webp q80      72.89   453 KB      +11%
+//   avif q50      65.62   216 KB      -47%   BELOW prod quality
+//   avif q55      68.77   261 KB      -36%   matches prod
+//   avif q60      72.32   322 KB      -21%
+//   avif q65      74.21   365 KB      -11%
+//
+// (ssimulacra2: 70 = high quality, artifacts not noticeable in normal viewing; 90 =
+// indistinguishable at 1:1.)
+//
+// AVIF is q60, not the q50 this file shipped with first. At q50 AVIF scored 65.6 against
+// WebP's 72.9, so the format ~95% of viewers actually receive was the worse-looking one,
+// and the "AVIF is 51% smaller" figure that came out of comparing them was mostly a
+// quality drop rather than compression. Quality-matched, AVIF's real advantage is ~20%.
+//
+// At these settings both formats land above what production looks like now, and the AVIF
+// is still 21% lighter than the file it replaces.
 //
 // AVIF effort is 4 rather than the maximum 9 on purpose. Effort 6 came out 1% LARGER
 // than effort 4 while taking 2.6x as long (1618ms vs 614ms) -- past 4 the encoder is
-// spending time on search that this kind of content doesn't reward. Raise it if you
-// benchmark your own photos and see otherwise.
-//
-// The quality numbers are not on the same scale. AVIF q50 is roughly WebP q80 to the
-// eye; they are not both "half quality".
+// spending time on search that this kind of content doesn't reward.
 const ENCODE = {
   webp: { quality: 80, effort: 6, smartSubsample: true },
-  avif: { quality: 50, effort: 4, chromaSubsampling: '4:2:0' },
+  avif: { quality: 60, effort: 4, chromaSubsampling: '4:2:0' },
 }
 
 // AVIF carries a fixed container overhead that stops paying for itself on thumbnails.
@@ -309,7 +326,17 @@ async function deriveOne({ buffer, width, format, outPath, animated, exifMode, e
     // orientation tag to 1 afterwards, so this does not double-rotate even when the
     // EXIF block is preserved below -- verified against an Orientation=6 source.
     .rotate()
-    .resize(width, null, { withoutEnlargement: true, fit: 'inside' })
+    // Longest edge, not width -- fit:'inside' with both dimensions set bounds the larger
+    // side. A 3024x4032 portrait becomes 1500x2000 in the 2000px tier, not 2000x2667.
+    //
+    // This matches the Lightroom presets the bucket was built with, so the new tiers line
+    // up with the ones already there. It also suits the layout: the grid sizes tiles by
+    // height (50vh), so a portrait is height-constrained and gains nothing from the extra
+    // width -- generating it by width was provisioning 1.78x the pixels for free.
+    //
+    // srcset stays exact because the w descriptor comes from the manifest, not the folder
+    // name: actual width is `min(tier, round(tier * width / height))`.
+    .resize(width, width, { withoutEnlargement: true, fit: 'inside' })
 
   if (width <= SHARPEN_AT_OR_BELOW && !animated) pipeline = pipeline.sharpen(SHARPEN)
 
@@ -374,9 +401,12 @@ async function processPhoto(opts, sourceDir, outDir, entry) {
   const exifDict = opts.exif === 'camera' ? cameraExif(info) : null
 
   const formats = animated ? ANIMATED_FORMATS.filter((f) => opts.formats.includes(f)) : opts.formats
-  const maxWidth = animated ? Math.min(source.width, ANIMATED_MAX_WIDTH) : source.width
+  // Tiers are longest-edge, so what caps the ladder is the source's longest edge.
+  const longestEdge = Math.max(source.width, source.height)
+  const maxTier = animated ? Math.min(longestEdge, ANIMATED_MAX_WIDTH) : longestEdge
 
   const tiers = []
+  const probeFormats = []
   let written = 0
   let bytes = 0
 
@@ -403,14 +433,20 @@ async function processPhoto(opts, sourceDir, outDir, entry) {
   }
 
   for (const width of opts.widths) {
-    // Skip rather than clamp. withoutEnlargement would happily emit a 1200px-wide file
-    // into the 2000px folder, and then srcset would advertise it as 2000w and the
-    // browser would pick it for displays it cannot actually serve.
-    if (width > maxWidth) continue
-    tiers.push(width)
+    // Skip rather than clamp. withoutEnlargement would happily emit a 1200px file into
+    // the 2000px folder, leaving two tiers that are byte-for-byte identical and a srcset
+    // offering the browser a choice that isn't one.
+    if (width > maxTier) continue
 
-    for (const format of formats) {
-      if (format === 'avif' && width < AVIF_MIN_WIDTH) continue
+    // AVIF is skipped below AVIF_MIN_WIDTH, so with --formats avif on its own the small
+    // tiers produce nothing at all. Work out what this width actually yields before
+    // recording it, or the manifest advertises a tier with no file behind it.
+    const tierFormats = formats.filter((f) => !(f === 'avif' && width < AVIF_MIN_WIDTH))
+    if (tierFormats.length === 0) continue
+    tiers.push(width)
+    probeFormats.push(tierFormats[0])
+
+    for (const format of tierFormats) {
       await emit(width, format, join(outDir, `${width}px`, `${name}.${format}`), false)
     }
 
@@ -424,7 +460,19 @@ async function processPhoto(opts, sourceDir, outDir, entry) {
     }
   }
 
-  return { name, width: source.width, height: source.height, tiers, animated, exif: info, written, bytes }
+  // The actual intrinsic width of each tier, read back rather than derived. Tiers bound
+  // the longest edge, so a portrait's 2000px file is 1500 wide -- and libvips rounds
+  // half-to-even when it scales, so 200 x 1206/2144 lands on 112 where Math.round would
+  // predict 113. srcset's w descriptor has to be the real number, so measure it.
+  const widths = []
+  if (!opts.dryRun) {
+    for (const [i, width] of tiers.entries()) {
+      const probe = join(outDir, `${width}px`, `${name}.${probeFormats[i]}`)
+      widths.push((await sharp(probe).metadata()).width)
+    }
+  }
+
+  return { name, width: source.width, height: source.height, tiers, widths, animated, exif: info, written, bytes }
 }
 
 // Fixed-size worker pool over the file list. Parallelism lives here, at the photo
@@ -534,11 +582,14 @@ if (!opts.dryRun) {
     // files that were never written.
     avifMinWidth: opts.formats.includes('avif') ? AVIF_MIN_WIDTH : null,
     photos: ok
-      .map(({ name, width, height, tiers, animated, exif }) => ({
+      .map(({ name, width, height, tiers, widths, animated, exif }) => ({
         name,
         width,
         height,
         tiers,
+        // Parallel to `tiers`: the real intrinsic width of each file, which is what a
+        // srcset w descriptor must carry. Differs from the tier number for portraits.
+        widths,
         ...(animated ? { animated: true } : {}),
         ...(exif ? { exif } : {}),
       }))
