@@ -1,4 +1,6 @@
-import { S3Client, paginateListObjectsV2 } from '@aws-sdk/client-s3'
+import { GetObjectCommand, S3Client, paginateListObjectsV2 } from '@aws-sdk/client-s3'
+
+import { AlbumManifest } from './responsive'
 
 // Shared S3 access + filename parsing. Both the album page and the home page
 // preview strips read through here so there is one definition of "what is in a year".
@@ -39,6 +41,53 @@ const CACHE_TTL_MS = 5 * 60 * 1000
 const cache = new Map<string, { at: number; keys: string[] }>()
 
 export const fileName = (key: string) => key.split('/').pop() ?? key
+
+// Per-year sidecar written by scripts/derive-sizes.mjs, holding each photo's real
+// dimensions and the size tiers that actually exist for it. Without it the grid cannot
+// build an honest srcset: tiers bound the longest edge, so a portrait's file in the 2000px
+// folder is 1500 wide, and only the manifest knows that.
+//
+// Returns null for any year that has not been regenerated yet -- most of them, at the time
+// of writing -- and the grid falls back to the single-size <img> it has always rendered.
+// A missing manifest must never be an error: it is the normal state for an old album.
+const manifestCache = new Map<string, { at: number; manifest: AlbumManifest | null }>()
+
+export async function loadManifest(year: string): Promise<AlbumManifest | null> {
+  const hit = manifestCache.get(year)
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    return hit.manifest
+  }
+
+  let manifest: AlbumManifest | null = null
+
+  // Local escape hatch: point YEARBOOK_MANIFEST_DIR at the folder derive-sizes.mjs wrote
+  // and the album reads the manifest off disk instead of S3, so a year can be checked
+  // before 1.4 GB of tiers go up. Unset in production, where S3 is the only source.
+  const localDir = process.env.YEARBOOK_MANIFEST_DIR
+
+  try {
+    if (localDir) {
+      const { readFile } = await import('node:fs/promises')
+      const body = await readFile(`${localDir}/${year}/manifest.json`, 'utf8')
+      manifest = JSON.parse(body) as AlbumManifest
+      manifestCache.set(year, { at: Date.now(), manifest })
+      return manifest
+    }
+
+    const response = await s3.send(
+      new GetObjectCommand({ Bucket: BUCKET, Key: `${year}/manifest.json` })
+    )
+    const body = await response.Body?.transformToString()
+    if (body) manifest = JSON.parse(body) as AlbumManifest
+  } catch {
+    // NoSuchKey for an unprocessed year, but also anything else -- a malformed manifest
+    // should degrade to the old rendering rather than take the album down.
+    manifest = null
+  }
+
+  manifestCache.set(year, { at: Date.now(), manifest })
+  return manifest
+}
 
 // Sorts by filename only -- keys are timestamp-prefixed, so this is chronological.
 // Photos live in {year}/200px and videos in {year}/video/webp, and interleaving them

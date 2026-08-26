@@ -7,4 +7,9 @@
 export const ASSET_HOST =
   process.env.NEXT_PUBLIC_ASSET_HOST || 'd2nk87d9flz1jw.cloudfront.net';
 
-export const assetUrl = (key: string) => `https://${ASSET_HOST}/${key}`;
+// A host that already carries its own scheme is used verbatim. That is what makes a local
+// preview possible -- point NEXT_PUBLIC_ASSET_HOST at 'http://localhost:8081' serving the
+// folder derive-sizes.mjs wrote, and the album loads tiers that are not on the CDN yet.
+// A bare hostname still gets https, so the production value is unaffected.
+export const assetUrl = (key: string) =>
+  /^https?:\/\//.test(ASSET_HOST) ? `${ASSET_HOST}/${key}` : `https://${ASSET_HOST}/${key}`;

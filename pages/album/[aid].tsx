@@ -9,7 +9,8 @@ import TimelineRail from '../../components/TimelineRail';
 import styled, { ThemeProvider } from "styled-components";
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../../ThemeConfig';
 import { assetUrl } from '../../AssetConfig';
-import { fileName, formatKeyDate, keyDate, listAlbum, monthMarkers, MonthMarker } from '../../lib/photos';
+import { formatKeyDate, keyDate, listAlbum, loadManifest, monthMarkers, MonthMarker } from '../../lib/photos';
+import { indexPhotos, largestTier, PhotoIndex, photoSlug } from '../../lib/responsive';
 import Link from 'next/link';
 import { TopBar, MainContentWrapper, MainContent, Header, LightSwitch } from '../../components/SharedComponents';
 
@@ -28,18 +29,27 @@ import "yet-another-react-lightbox/plugins/thumbnails.css";
 interface IAlbumProps {
   data: string[],
   year: string,
+  // Empty for any year that has not been through scripts/derive-sizes.mjs yet.
+  photos: PhotoIndex,
+  avifMinWidth: number | null,
 }
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
   const aid = String(context.query.aid)
 
-  return { props: { data: await listAlbum(aid), year: aid } };
-}
+  // The listing and the manifest are independent reads, and the manifest is allowed to be
+  // absent -- loadManifest resolves to null rather than throwing for an unprocessed year.
+  const [data, manifest] = await Promise.all([listAlbum(aid), loadManifest(aid)])
 
-// Stable, human-readable id for a single shot -- '2025/200px/20250102-202907-9243.webp'
-// becomes '20250102-202907-9243'. Used as the #photo= fragment so a link to one photo
-// survives re-uploads and size changes.
-const photoSlug = (key: string) => fileName(key).replace(/\.[^.]+$/, '');
+  return {
+    props: {
+      data,
+      year: aid,
+      photos: indexPhotos(manifest),
+      avifMinWidth: manifest?.avifMinWidth ?? null,
+    },
+  };
+}
 
 // Leaves a jumped-to photo clear of the header rather than tucked under it.
 const HEADER_OFFSET = 80;
@@ -54,7 +64,7 @@ const readPhotoHash = () => {
   return match ? decodeURIComponent(match[1]) : null;
 };
 
-const Album = ({ data: images, year }: IAlbumProps) => {
+const Album = ({ data: images, year, photos, avifMinWidth }: IAlbumProps) => {
   const [theme, setTheme] = useState(THEMES.DARK.name);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -69,14 +79,38 @@ const Album = ({ data: images, year }: IAlbumProps) => {
   const markers = useMemo(() => monthMarkers(images ?? []), [images]);
   const slugs = useMemo(() => (images ?? []).map(photoSlug), [images]);
 
+  // The lightbox gets the same ladder the grid does, so a phone opening a photo pulls a
+  // 1200px file rather than the full 3000px one. WebP only: the lightbox renders a plain
+  // <img srcset>, with no <picture> to fall back from, so it cannot serve AVIF without
+  // breaking the browsers that lack it.
   const slides = useMemo(
     () =>
-      (images ?? []).map((path: string) => ({
-        src: assetUrl(path.replace('200px', '3000px')),
-        thumbnail: assetUrl(path),
-        title: formatKeyDate(path) ?? undefined,
-      })),
-    [images]
+      (images ?? []).map((path: string) => {
+        const meta = photos?.[photoSlug(path)];
+        const title = formatKeyDate(path) ?? undefined;
+
+        if (!meta) {
+          return {
+            src: assetUrl(path.replace('200px', '3000px')),
+            thumbnail: assetUrl(path),
+            title,
+          };
+        }
+
+        return {
+          src: largestTier(year, meta),
+          thumbnail: assetUrl(path),
+          title,
+          width: meta.width,
+          height: meta.height,
+          srcSet: meta.tiers.map((tier, i) => ({
+            src: assetUrl(`${year}/${tier}px/${meta.name}.webp`),
+            width: meta.widths[i],
+            height: Math.round((meta.widths[i] * meta.height) / meta.width),
+          })),
+        };
+      }),
+    [images, photos, year]
   );
 
   const toggleTheme = () => {
@@ -230,6 +264,8 @@ const Album = ({ data: images, year }: IAlbumProps) => {
             ref={albumRef}
             items={images}
             year={year}
+            photos={photos}
+            avifMinWidth={avifMinWidth}
             onImageClick={openLightbox}
             onVisibleIndexChange={onVisibleIndexChange}
           />
