@@ -16,6 +16,27 @@ const s3 = new S3Client({
   },
 })
 
+// Mirrors listKeys against a local folder, for the YEARBOOK_MANIFEST_DIR preview. Without
+// it the listing comes from S3 while the bytes come from disk, so a year whose S3 objects
+// are still .jpg asks the local server for names it does not have and renders nothing.
+async function listLocalKeys(dir: string, prefix: string): Promise<string[]> {
+  const { readdir } = await import('node:fs/promises')
+
+  try {
+    const names = await readdir(`${dir}/${prefix}`)
+    return names
+      .filter((name) => SUPPORTED_FILES.some((ext) => name.toLowerCase().endsWith(ext)))
+      .map((name) => `${prefix}/${name}`)
+  } catch {
+    return []
+  }
+}
+
+function listLocalOrRemote(prefix: string): Promise<string[]> {
+  const localDir = process.env.YEARBOOK_MANIFEST_DIR
+  return localDir ? listLocalKeys(localDir, prefix) : listKeys(prefix)
+}
+
 // Paginates past the 1000-key cap that a bare ListObjectsV2 silently truncates at.
 // Only includes keys ending in SUPPORTED_FILES -- filters out directories and any
 // weird files like .DS_Store.
@@ -100,6 +121,34 @@ function byFileName(a: string, b: string) {
   return aName < bName ? -1 : 1
 }
 
+// Which extension wins when the same photo exists in more than one format. Higher is
+// better; anything unlisted sorts last.
+const FORMAT_RANK: Record<string, number> = { webp: 2, jpg: 1, jpeg: 1, gif: 0 }
+
+const extensionOf = (key: string) => key.toLowerCase().split('.').pop() ?? ''
+
+// Collapses NAME.jpg and NAME.webp down to one entry, keeping whichever format ranks
+// higher. Necessary because regenerating a year writes .webp into a 200px folder that
+// already holds the original .jpg exports -- without this every photo in 2021 through 2024
+// would appear twice, back to back, since byFileName sorts the pair adjacent.
+//
+// Doing it here rather than by deleting the old objects is deliberate: it means the new
+// tiers can be uploaded alongside the old ones and checked in production before anything
+// is removed, and it keeps working if a stray old file is ever left behind.
+function preferBestFormat(keys: string[]): string[] {
+  const best = new Map<string, string>()
+
+  for (const key of keys) {
+    const slug = fileName(key).replace(/\.[^.]+$/, '')
+    const current = best.get(slug)
+    if (!current || (FORMAT_RANK[extensionOf(key)] ?? -1) > (FORMAT_RANK[extensionOf(current)] ?? -1)) {
+      best.set(slug, key)
+    }
+  }
+
+  return Array.from(best.values())
+}
+
 export async function listAlbum(year: string): Promise<string[]> {
   const hit = cache.get(year)
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
@@ -107,11 +156,13 @@ export async function listAlbum(year: string): Promise<string[]> {
   }
 
   const [photos, videos] = await Promise.all([
-    listKeys(`${year}/200px`),
-    listKeys(`${year}/video/webp`),
+    listLocalOrRemote(`${year}/200px`),
+    listLocalOrRemote(`${year}/video/webp`),
   ])
 
-  const keys = videos.concat(photos).sort(byFileName)
+  // Only the stills are deduplicated. Clips live under their own prefix and are not
+  // reissued in a second format, so there is nothing there to collapse.
+  const keys = videos.concat(preferBestFormat(photos)).sort(byFileName)
   cache.set(year, { at: Date.now(), keys })
 
   return keys
