@@ -1,5 +1,6 @@
 import { GetObjectCommand, S3Client, paginateListObjectsV2 } from '@aws-sdk/client-s3'
 
+import { prefixed } from '../AssetConfig'
 import { AlbumManifest } from './responsive'
 
 // Shared S3 access + filename parsing. Both the album page and the home page
@@ -32,9 +33,13 @@ async function listLocalKeys(dir: string, prefix: string): Promise<string[]> {
   }
 }
 
+// prefixed() is applied to the lookup path, not to the results: S3 hands back whole keys
+// already, and listLocalKeys mirrors that by echoing the path it was given. Either way the
+// keys that come out are exactly what assetUrl() should be handed.
 function listLocalOrRemote(prefix: string): Promise<string[]> {
   const localDir = process.env.YEARBOOK_MANIFEST_DIR
-  return localDir ? listLocalKeys(localDir, prefix) : listKeys(prefix)
+  const path = prefixed(prefix)
+  return localDir ? listLocalKeys(localDir, path) : listKeys(path)
 }
 
 // Paginates past the 1000-key cap that a bare ListObjectsV2 silently truncates at.
@@ -89,14 +94,14 @@ export async function loadManifest(year: string): Promise<AlbumManifest | null> 
   try {
     if (localDir) {
       const { readFile } = await import('node:fs/promises')
-      const body = await readFile(`${localDir}/${year}/manifest.json`, 'utf8')
+      const body = await readFile(`${localDir}/${prefixed(`${year}/manifest.json`)}`, 'utf8')
       manifest = JSON.parse(body) as AlbumManifest
       manifestCache.set(year, { at: Date.now(), manifest })
       return manifest
     }
 
     const response = await s3.send(
-      new GetObjectCommand({ Bucket: BUCKET, Key: `${year}/manifest.json` })
+      new GetObjectCommand({ Bucket: BUCKET, Key: prefixed(`${year}/manifest.json`) })
     )
     const body = await response.Body?.transformToString()
     if (body) manifest = JSON.parse(body) as AlbumManifest

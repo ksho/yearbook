@@ -4,7 +4,7 @@
 // anything it pulls in ends up in the browser bundle. The S3 side of the manifest lives
 // in lib/photos.ts, which imports its types from here rather than the other way round.
 
-import { assetUrl } from '../AssetConfig'
+import { assetUrl, prefixed } from '../AssetConfig'
 
 export interface PhotoMeta {
   name: string
@@ -40,8 +40,11 @@ export function indexPhotos(manifest: AlbumManifest | null): PhotoIndex {
   return index
 }
 
-const tierUrl = (year: string, tier: number, name: string, format: string) =>
-  assetUrl(`${year}/${tier}px/${name}.${format}`)
+// The one place a tier URL is built. Everything -- grid srcset, <img> fallback, lightbox
+// slides -- goes through here so the key prefix cannot be applied in some paths and
+// forgotten in others.
+export const tierUrl = (year: string, tier: number, name: string, format: string) =>
+  assetUrl(prefixed(`${year}/${tier}px/${name}.${format}`))
 
 export function srcSetFor(
   year: string,

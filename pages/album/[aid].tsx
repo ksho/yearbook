@@ -10,7 +10,7 @@ import styled, { ThemeProvider } from "styled-components";
 import { lightTheme, darkTheme, GlobalStyles, THEMES } from '../../ThemeConfig';
 import { assetUrl } from '../../AssetConfig';
 import { formatKeyDate, keyDate, listAlbum, loadManifest, monthMarkers, MonthMarker } from '../../lib/photos';
-import { indexPhotos, largestTier, PhotoIndex, photoSlug } from '../../lib/responsive';
+import { indexPhotos, largestTier, PhotoIndex, photoSlug, tierUrl } from '../../lib/responsive';
 import Link from 'next/link';
 import { TopBar, MainContentWrapper, MainContent, Header, LightSwitch } from '../../components/SharedComponents';
 
@@ -104,7 +104,7 @@ const Album = ({ data: images, year, photos, avifMinWidth }: IAlbumProps) => {
           width: meta.width,
           height: meta.height,
           srcSet: meta.tiers.map((tier, i) => ({
-            src: assetUrl(`${year}/${tier}px/${meta.name}.webp`),
+            src: tierUrl(year, tier, meta.name, 'webp'),
             width: meta.widths[i],
             height: Math.round((meta.widths[i] * meta.height) / meta.width),
           })),

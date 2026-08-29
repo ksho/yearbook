@@ -11,5 +11,21 @@ export const ASSET_HOST =
 // preview possible -- point NEXT_PUBLIC_ASSET_HOST at 'http://localhost:8081' serving the
 // folder derive-sizes.mjs wrote, and the album loads tiers that are not on the CDN yet.
 // A bare hostname still gets https, so the production value is unaffected.
+// Key prefix for everything the album reads: listings, manifests and tier URLs alike.
+//
+// Regenerating a year renames its files -- the current Lightroom preset appends a sequence
+// number, so 2014 through 2022 came back as 20160101-010156-2936.webp where the bucket
+// holds 20160101-010156.jpg. Uploading those into the existing paths would leave both
+// copies sitting there and every photo in those years would list twice. Writing the new
+// ladder under its own prefix sidesteps that entirely: nothing overwrites, nothing has to
+// be deleted, and the old paths stay exactly as they are, still cached at the edge, so a
+// rollback is just shipping the previous value of this constant.
+//
+// Empty means the layout the bucket has today. Set it to the new prefix once that prefix
+// is fully populated -- doing it earlier points the site at objects that are not there yet.
+export const KEY_PREFIX = (process.env.NEXT_PUBLIC_ASSET_PREFIX || '').replace(/^\/+|\/+$/g, '');
+
+export const prefixed = (key: string) => (KEY_PREFIX ? `${KEY_PREFIX}/${key}` : key);
+
 export const assetUrl = (key: string) =>
   /^https?:\/\//.test(ASSET_HOST) ? `${ASSET_HOST}/${key}` : `https://${ASSET_HOST}/${key}`;
