@@ -165,6 +165,68 @@ aws cloudfront create-invalidation --distribution-id E2AKQTW7LH879C --paths "/20
 
 Adding *new* files needs no invalidation -- they were never cached.
 
+### Video clips
+
+Clips are the one part of the album that never went through the size ladder, and they are
+now the heaviest thing the site serves. Everything below was measured against the bucket in
+August 2026 and is outstanding work, not a description of something already fixed.
+
+**Only one prefix is served.** `listAlbum()` in `lib/photos.ts` lists `{year}/200px` and
+`{year}/video/webp`, and nothing else. Anything sitting elsewhere under `{year}/video/` is
+invisible to the site no matter how much space it takes.
+
+| path | contents | size | served |
+|---|---|---|---|
+| `2020/video/webp/` | 15 files, **GIF data despite the folder name** | 122.6 MB | yes |
+| `2022/video/webp/` | 52 animated WebP | 284.3 MB | yes |
+| `2025/video/webp/` | 4 animated WebP | 31.2 MB | yes |
+| `2020/video/*.gif` | the same 15 GIFs, loose | 122.6 MB | no |
+| `2020/video/gif/` | the same 15 GIFs again | 122.6 MB | no |
+| `2022/video/gif/` | 13 GIFs | 116.6 MB | no |
+| `2022/video/*.mov` | 7 raw camera originals | 1,715 MB | no |
+| `2025/video/test/` | 1 file | 5 MB | no |
+| `2016/3000px/*.mp4` | 2 strays in a photo tier folder | 200.7 MB | no |
+
+**They dominate page weight.** The largest single served object is 16.4 MB
+(`2022/video/webp/20220911-105347_40.webp`); the average is 5.5 MB in 2022 and 8.2 MB in
+2020. After the responsive ladder landed, the first fifteen photo tiles cost 1.2--1.9 MB
+altogether, so one clip is roughly ten times the entire first screen of photos. The grid
+plays clips continuously rather than showing a poster, so every clip in a scrolled batch is
+downloaded in full: scrolling all of 2022 pulls ~284 MB of clips against maybe 40 MB of
+photos. Any year with clips largely undoes the image work.
+
+**2020's are GIFs.** Confirmed by magic bytes -- `GIF89a`, in a folder called `webp`. GIF
+gives 256 colours and no interframe compression worth the name, which is why they average
+8.2 MB. Re-encoding to animated WebP should cut them by most of their size.
+
+**Why they are outside the pipeline.** `scripts/derive-sizes.mjs` reads `originals/`, and
+clips live under `{year}/video/`, so the script has never seen them. They have no manifest
+entry, which means the grid renders them on the fallback path -- a single `<img>` at one
+size, no srcset, the same 8 MB file for a phone and a desktop.
+
+The script already handles animated input: it detects multi-page sources, sets
+`{ animated: true }` (without which sharp silently flattens to frame one), caps them at
+`ANIMATED_MAX_WIDTH` (1200) because every frame pays the full encode, emits WebP only
+(animated AVIF is far slower and worse supported), and can write a still first frame with
+`--posters`. So giving clips the 200/400/800/1200 ladder is mostly a matter of getting them
+into a folder the script can read.
+
+**The raw sources are publicly fetchable.** `2022/video/20220116-1234.mov` returns
+`HTTP 200, video/quicktime, 539 MB` through CloudFront, as does
+`2016/3000px/20160404-233132.mp4` at 181 MB. That is ~1.9 GB of unserved raw video in a
+public bucket, and unlike the photos these filenames are guessable (`20220116-1234.mov`),
+so the "nobody enumerates timestamp-plus-random names" argument in **What the gate does not
+cover** does not apply to them.
+
+**What is outstanding**
+
+1. Copy the 71 served clips into the new key prefix, or they vanish when `KEY_PREFIX` is
+   set -- `listAlbum()` will look under `{prefix}/{year}/video/webp`.
+2. Run the 71 clips through `derive-sizes.mjs` for the animated ladder and manifest
+   entries, so a phone pulls the 400px version instead of the 8 MB one. 2020 gains most.
+3. Delete the 9 raw `.mov`/`.mp4` objects (~1.9 GB) and the duplicate 2020 GIF sets
+   (~245 MB). Nothing links to any of it.
+
 ### Styling
 
 - Uses `styled-components` for component styling

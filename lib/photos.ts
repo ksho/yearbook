@@ -1,4 +1,7 @@
-import { S3Client, paginateListObjectsV2 } from '@aws-sdk/client-s3'
+import { GetObjectCommand, S3Client, paginateListObjectsV2 } from '@aws-sdk/client-s3'
+
+import { prefixed } from '../AssetConfig'
+import { AlbumManifest } from './responsive'
 
 // Shared S3 access + filename parsing. Both the album page and the home page
 // preview strips read through here so there is one definition of "what is in a year".
@@ -13,6 +16,31 @@ const s3 = new S3Client({
     secretAccessKey: process.env.AWS_S3_SECRET as string,
   },
 })
+
+// Mirrors listKeys against a local folder, for the YEARBOOK_MANIFEST_DIR preview. Without
+// it the listing comes from S3 while the bytes come from disk, so a year whose S3 objects
+// are still .jpg asks the local server for names it does not have and renders nothing.
+async function listLocalKeys(dir: string, prefix: string): Promise<string[]> {
+  const { readdir } = await import('node:fs/promises')
+
+  try {
+    const names = await readdir(`${dir}/${prefix}`)
+    return names
+      .filter((name) => SUPPORTED_FILES.some((ext) => name.toLowerCase().endsWith(ext)))
+      .map((name) => `${prefix}/${name}`)
+  } catch {
+    return []
+  }
+}
+
+// prefixed() is applied to the lookup path, not to the results: S3 hands back whole keys
+// already, and listLocalKeys mirrors that by echoing the path it was given. Either way the
+// keys that come out are exactly what assetUrl() should be handed.
+function listLocalOrRemote(prefix: string): Promise<string[]> {
+  const localDir = process.env.YEARBOOK_MANIFEST_DIR
+  const path = prefixed(prefix)
+  return localDir ? listLocalKeys(localDir, path) : listKeys(path)
+}
 
 // Paginates past the 1000-key cap that a bare ListObjectsV2 silently truncates at.
 // Only includes keys ending in SUPPORTED_FILES -- filters out directories and any
@@ -40,6 +68,53 @@ const cache = new Map<string, { at: number; keys: string[] }>()
 
 export const fileName = (key: string) => key.split('/').pop() ?? key
 
+// Per-year sidecar written by scripts/derive-sizes.mjs, holding each photo's real
+// dimensions and the size tiers that actually exist for it. Without it the grid cannot
+// build an honest srcset: tiers bound the longest edge, so a portrait's file in the 2000px
+// folder is 1500 wide, and only the manifest knows that.
+//
+// Returns null for any year that has not been regenerated yet -- most of them, at the time
+// of writing -- and the grid falls back to the single-size <img> it has always rendered.
+// A missing manifest must never be an error: it is the normal state for an old album.
+const manifestCache = new Map<string, { at: number; manifest: AlbumManifest | null }>()
+
+export async function loadManifest(year: string): Promise<AlbumManifest | null> {
+  const hit = manifestCache.get(year)
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
+    return hit.manifest
+  }
+
+  let manifest: AlbumManifest | null = null
+
+  // Local escape hatch: point YEARBOOK_MANIFEST_DIR at the folder derive-sizes.mjs wrote
+  // and the album reads the manifest off disk instead of S3, so a year can be checked
+  // before 1.4 GB of tiers go up. Unset in production, where S3 is the only source.
+  const localDir = process.env.YEARBOOK_MANIFEST_DIR
+
+  try {
+    if (localDir) {
+      const { readFile } = await import('node:fs/promises')
+      const body = await readFile(`${localDir}/${prefixed(`${year}/manifest.json`)}`, 'utf8')
+      manifest = JSON.parse(body) as AlbumManifest
+      manifestCache.set(year, { at: Date.now(), manifest })
+      return manifest
+    }
+
+    const response = await s3.send(
+      new GetObjectCommand({ Bucket: BUCKET, Key: prefixed(`${year}/manifest.json`) })
+    )
+    const body = await response.Body?.transformToString()
+    if (body) manifest = JSON.parse(body) as AlbumManifest
+  } catch {
+    // NoSuchKey for an unprocessed year, but also anything else -- a malformed manifest
+    // should degrade to the old rendering rather than take the album down.
+    manifest = null
+  }
+
+  manifestCache.set(year, { at: Date.now(), manifest })
+  return manifest
+}
+
 // Sorts by filename only -- keys are timestamp-prefixed, so this is chronological.
 // Photos live in {year}/200px and videos in {year}/video/webp, and interleaving them
 // by name puts a clip in the middle of the day it was shot.
@@ -51,6 +126,34 @@ function byFileName(a: string, b: string) {
   return aName < bName ? -1 : 1
 }
 
+// Which extension wins when the same photo exists in more than one format. Higher is
+// better; anything unlisted sorts last.
+const FORMAT_RANK: Record<string, number> = { webp: 2, jpg: 1, jpeg: 1, gif: 0 }
+
+const extensionOf = (key: string) => key.toLowerCase().split('.').pop() ?? ''
+
+// Collapses NAME.jpg and NAME.webp down to one entry, keeping whichever format ranks
+// higher. Necessary because regenerating a year writes .webp into a 200px folder that
+// already holds the original .jpg exports -- without this every photo in 2021 through 2024
+// would appear twice, back to back, since byFileName sorts the pair adjacent.
+//
+// Doing it here rather than by deleting the old objects is deliberate: it means the new
+// tiers can be uploaded alongside the old ones and checked in production before anything
+// is removed, and it keeps working if a stray old file is ever left behind.
+function preferBestFormat(keys: string[]): string[] {
+  const best = new Map<string, string>()
+
+  for (const key of keys) {
+    const slug = fileName(key).replace(/\.[^.]+$/, '')
+    const current = best.get(slug)
+    if (!current || (FORMAT_RANK[extensionOf(key)] ?? -1) > (FORMAT_RANK[extensionOf(current)] ?? -1)) {
+      best.set(slug, key)
+    }
+  }
+
+  return Array.from(best.values())
+}
+
 export async function listAlbum(year: string): Promise<string[]> {
   const hit = cache.get(year)
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
@@ -58,11 +161,13 @@ export async function listAlbum(year: string): Promise<string[]> {
   }
 
   const [photos, videos] = await Promise.all([
-    listKeys(`${year}/200px`),
-    listKeys(`${year}/video/webp`),
+    listLocalOrRemote(`${year}/200px`),
+    listLocalOrRemote(`${year}/video/webp`),
   ])
 
-  const keys = videos.concat(photos).sort(byFileName)
+  // Only the stills are deduplicated. Clips live under their own prefix and are not
+  // reissued in a second format, so there is nothing there to collapse.
+  const keys = videos.concat(preferBestFormat(photos)).sort(byFileName)
   cache.set(year, { at: Date.now(), keys })
 
   return keys
