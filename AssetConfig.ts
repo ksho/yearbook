@@ -21,9 +21,14 @@ export const ASSET_HOST =
 // be deleted, and the old paths stay exactly as they are, still cached at the edge, so a
 // rollback is just shipping the previous value of this constant.
 //
-// Empty means the layout the bucket has today. Set it to the new prefix once that prefix
-// is fully populated -- doing it earlier points the site at objects that are not there yet.
-export const KEY_PREFIX = (process.env.NEXT_PUBLIC_ASSET_PREFIX || '').replace(/^\/+|\/+$/g, '');
+// Defaults to v2, which holds the full size ladder for every year plus the clips, verified
+// object-for-object against what derive-sizes.mjs wrote (66,136 keys) before this was set.
+// The old layout is still in the bucket at the root, untouched.
+//
+// `??` rather than `||` on purpose: an explicitly empty NEXT_PUBLIC_ASSET_PREFIX means the
+// old root layout. That is how a local YEARBOOK_MANIFEST_DIR preview runs, since the folder
+// derive-sizes.mjs writes has no v2/ level, and it is a way back without a code change.
+export const KEY_PREFIX = (process.env.NEXT_PUBLIC_ASSET_PREFIX ?? 'v2').replace(/^\/+|\/+$/g, '');
 
 export const prefixed = (key: string) => (KEY_PREFIX ? `${KEY_PREFIX}/${key}` : key);
 
