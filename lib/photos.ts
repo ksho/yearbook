@@ -78,6 +78,13 @@ export const fileName = (key: string) => key.split('/').pop() ?? key
 // A missing manifest must never be an error: it is the normal state for an old album.
 const manifestCache = new Map<string, { at: number; manifest: AlbumManifest | null }>()
 
+// A year that has not been through derive-sizes.mjs: NoSuchKey from S3, ENOENT from a local
+// preview folder. The only manifest failure that is expected, and so the only one not logged.
+function isMissingManifest(error: unknown): boolean {
+  const { name, code } = (error ?? {}) as { name?: string; code?: string }
+  return name === 'NoSuchKey' || code === 'ENOENT'
+}
+
 export async function loadManifest(year: string): Promise<AlbumManifest | null> {
   const hit = manifestCache.get(year)
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
@@ -105,9 +112,18 @@ export async function loadManifest(year: string): Promise<AlbumManifest | null> 
     )
     const body = await response.Body?.transformToString()
     if (body) manifest = JSON.parse(body) as AlbumManifest
-  } catch {
-    // NoSuchKey for an unprocessed year, but also anything else -- a malformed manifest
-    // should degrade to the old rendering rather than take the album down.
+  } catch (error) {
+    // Anything else still degrades to the old rendering rather than taking the album down --
+    // but it is logged, because unlike a missing manifest it is never the normal state.
+    //
+    // The manifests are private: they list every filename in a year, and those names are
+    // what keeps the public photo URLs from being enumerable. That makes AccessDenied here
+    // the likeliest failure -- an IAM key without s3:GetObject on them -- and it is a quiet
+    // one. The album still renders, on the fallback path, which for 2014-2022 asks for a
+    // 1000px tier that v2/ does not have. Without this line the first sign is broken tiles.
+    if (!isMissingManifest(error)) {
+      console.error(`manifest for ${year} could not be read; rendering without it:`, error)
+    }
     manifest = null
   }
 

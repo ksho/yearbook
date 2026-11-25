@@ -13,38 +13,7 @@ This application displays the photos for my annual yearbook project.
 
 # Usage
 
-## Sync assets to S3
-- `cd $LOCAL_PHOTO_DIRECTORY`
-- `aws s3 sync . s3://yearbook-assets/ --delete --acl public-read --profile default --exclude "*" --include "*.jpg" --include "*.webp" --include "*.gif" --size-only`
-
-New files need no CloudFront invalidation. If you *overwrite* an existing shot, it propagates on its own within a day (assets are cached for 24h, not permanently). To push it out immediately:
-- `aws cloudfront create-invalidation --distribution-id E2AKQTW7LH879C --paths "/2025/2000px/*"`
-
-## Converting jpgs --> webp
-`for f in *.jpg; do cwebp -q 85 -m 6 -af "$f" -o "${f%.jpg}.webp"; done`
-
-## Converting videos to webp
-```
-for i in *.mov; do ffmpeg -ss 00:00:00.000 -i "$i" -vcodec libwebp -q 50 -r 12 -vf 'scale=1000:1000:force_original_aspect_ratio=decrease' -loop 0 -t 00:00:12.000 "${i%.*}_50.webp"; done
-```
-- converts a folder of video -> webp
-- longest side 1000px
-- first 12 secs
-- 12 frames/sec
-- quality 50
-
-## Converting videos to gif
-```
-for i in *.MOV; do ffmpeg -ss 00:00:00.000 -i "$i" -pix_fmt rgb24 -r 12 -vf 'scale=600:600:force_original_aspect_ratio=decrease' -t 00:00:10.000 "${i%.*}.gif"; done
-```
-
-- converts a folder of video -> gif
-- longest side 600px
-- first 10 secs
-- 12 frames/sec
-
-
-_alternatively_
-
-`ffmpeg -ss 00:00:00.000 -i IMG_5407.MOV -pix_fmt rgb24 -r 15 -s 300x553 -t 00:00:10.000 output4.gif`
-..this is a 10 sec clip of the movie at a 15/sec frame rate .. downsized to 300x553
+The upload, preview and video recipes live in [CLAUDE.md](CLAUDE.md), under **Asset Management**.
+They are kept in one place on purpose: the commands that used to sit here synced to the bucket
+root with `--delete`, which against today's `v2/` layout would delete most of what the site
+serves, and published the manifests that are meant to stay private.

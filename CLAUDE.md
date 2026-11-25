@@ -62,10 +62,20 @@ empty: the export folder has no `v2/` level. Only years present locally will ren
 **3. Upload**
 
 ```bash
-aws s3 sync "/Users/karlshouler/Pictures/PicturesSrc/new yearbook/2026" s3://yearbook-assets/v2/2026/ --profile default --acl public-read --exclude "*" --include "*.webp" --include "*.avif" --include "manifest.json" --exclude "originals/*" --exclude "video/*"
+aws s3 sync "/Users/karlshouler/Pictures/PicturesSrc/new yearbook/2026" s3://yearbook-assets/v2/2026/ --profile default --acl public-read --exclude "*" --include "*.webp" --include "*.avif" --exclude "originals/*" --exclude "video/*"
+```
+
+```bash
+aws s3 cp "/Users/karlshouler/Pictures/PicturesSrc/new yearbook/2026/manifest.json" s3://yearbook-assets/v2/2026/manifest.json --profile default
 ```
 
 Every part of that is load-bearing:
+
+- **The manifest goes up separately, with no ACL, so it stays private.** It lists every filename
+  in the year, and unguessable filenames are the only thing keeping the public photos from
+  being enumerated (see **What the gate does not cover**). The site reads it server-side with
+  the app's AWS key, never through CloudFront. Don't add `manifest.json` back to the sync's
+  includes: anything that goes through that command picks up `--acl public-read`.
 
 - **`--acl public-read` is required.** Objects are public through an `AllUsers: READ` ACL, not
   a bucket policy. Without it the files upload private and CloudFront returns 403.
@@ -80,11 +90,20 @@ Every part of that is load-bearing:
   filter, every WebP under `v2/` that is not in the local folder counts as extra and gets
   deleted -- which is most of what the site serves, clips included.
 
-A new year needs no invalidation: its paths were never cached. To check it went up public:
+A new year needs no invalidation: its paths were never cached. To check the photos went up
+public and the manifest did not -- expect `200`, then `403`:
+
+```bash
+f=$(ls "/Users/karlshouler/Pictures/PicturesSrc/new yearbook/2026/800px" | head -1); curl -sI "https://d2nk87d9flz1jw.cloudfront.net/v2/2026/800px/$f" | head -1
+```
 
 ```bash
 curl -sI https://d2nk87d9flz1jw.cloudfront.net/v2/2026/manifest.json | head -1
 ```
+
+If the album then renders without its srcsets, the app's key cannot read the private manifest:
+`loadManifest()` logs `manifest for 2026 could not be read` to the Vercel logs, and the fix is
+`s3:GetObject` on `v2/*/manifest.json` for that IAM user.
 
 **Video clips** are made with ffmpeg and are not part of the ladder yet (see **Video clips**
 for why that matters):
@@ -148,7 +167,7 @@ What a rate limiter would actually protect is the Vercel invoice, if someone ham
 
 ### What the gate does not cover
 
-**Photos on CloudFront are still publicly fetchable.** This is a deliberate call, not an oversight. The bucket refuses anonymous `ListObjectsV2`, and filenames are timestamp-plus-random, so nobody enumerates them -- but a URL that leaks works for anyone. The gate protects the year descriptions, the album structure, and discovery. If that ever needs to be airtight, the answer is CloudFront signed cookies plus locking S3 to OAC, which also means moving assets to a subdomain of the site so one cookie covers both.
+**Photos on CloudFront are still publicly fetchable.** This is a deliberate call, not an oversight. The bucket refuses anonymous `ListObjectsV2`, filenames are timestamp-plus-random, and the per-year `manifest.json` that lists them all is private, so nobody enumerates them -- but a URL that leaks works for anyone. The gate protects the year descriptions, the album structure, and discovery. If that ever needs to be airtight, the answer is CloudFront signed cookies plus locking S3 to OAC, which also means moving assets to a subdomain of the site so one cookie covers both.
 
 `public/robots.txt` and the `X-Robots-Tag` header in `next.config.js` keep crawlers out from here on. Neither removes anything already sitting in a search index -- that needs Search Console's removal tool.
 
@@ -201,6 +220,9 @@ What a rate limiter would actually protect is the Vercel invoice, if someone ham
 
 The app fetches image lists from S3 using AWS SDK v3 in `getServerSideProps`:
 - Requires environment variables: `AWS_S3_ACCESS_KEY`, `AWS_S3_SECRET`
+- That key needs `s3:ListBucket` for the listings and `s3:GetObject` for the manifests, which
+  are the one private object type in the bucket. A manifest the key cannot read is logged and
+  the album falls back to unsized single images; only a missing one (`NoSuchKey`) is silent
 - Bucket: `yearbook-assets`
 - Supported formats: jpg, gif, webp. AVIF never appears in a listing -- the 200px tier the album lists is WebP only -- and is only ever reached through the srcset
 
